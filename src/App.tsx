@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import AppHostSelector from './components/AppHostSelector'
 import PipelineViewer from './components/PipelineViewer'
 import NodeDetailsPanel from './components/NodeDetailsPanel'
+import ExecutionPanel from './components/ExecutionPanel'
 import { parseDiagnostics } from './utils/diagnosticsParser'
 import type { PipelineGraph } from './types/pipeline'
 
@@ -9,6 +10,7 @@ export default function App() {
   const [selectedDirectory, setSelectedDirectory] = useState<string | null>(null)
   const [pipelineGraph, setPipelineGraph] = useState<PipelineGraph | null>(null)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
+  const [showExecutionPanel, setShowExecutionPanel] = useState(false)
 
   useEffect(() => {
     if (!selectedDirectory) return
@@ -42,23 +44,26 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen w-full bg-gray-50">
-      <div className="flex-1 flex flex-col">
-        <div className="border-b border-gray-200 bg-white px-4 py-3 flex justify-between items-center">
-          <h1 className="text-lg font-semibold text-gray-900">{selectedDirectory}</h1>
-          <button onClick={handleResetDirectory} className="px-3 py-1 text-sm bg-gray-200 hover:bg-gray-300 rounded">
-            Change Directory
-          </button>
+    <div className="flex h-screen w-full bg-gray-50 flex-col">
+      <div className="flex flex-1 overflow-hidden">
+        <div className="flex-1 flex flex-col">
+          <div className="border-b border-gray-200 bg-white px-4 py-3 flex justify-between items-center">
+            <h1 className="text-lg font-semibold text-gray-900">{selectedDirectory}</h1>
+            <button onClick={handleResetDirectory} className="px-3 py-1 text-sm bg-gray-200 hover:bg-gray-300 rounded">
+              Change Directory
+            </button>
+          </div>
+          <div className="flex-1 overflow-hidden">
+            <PipelineViewer graph={pipelineGraph} selectedNodeId={selectedNodeId} onNodeSelected={handleNodeSelected} />
+          </div>
         </div>
-        <div className="flex-1 overflow-hidden">
-          <PipelineViewer graph={pipelineGraph} selectedNodeId={selectedNodeId} onNodeSelected={handleNodeSelected} />
-        </div>
+        {selectedNodeId && (
+          <div className="w-80 border-l border-gray-200 bg-white overflow-y-auto">
+            <NodeDetailsPanel nodeId={selectedNodeId} graph={pipelineGraph} directory={selectedDirectory} onClose={() => setSelectedNodeId(null)} onExecute={() => setShowExecutionPanel(true)} />
+          </div>
+        )}
       </div>
-      {selectedNodeId && (
-        <div className="w-80 border-l border-gray-200 bg-white overflow-y-auto">
-          <NodeDetailsPanel nodeId={selectedNodeId} graph={pipelineGraph} onClose={() => setSelectedNodeId(null)} />
-        </div>
-      )}
+      <ExecutionPanel isVisible={showExecutionPanel} onClose={() => setShowExecutionPanel(false)} />
     </div>
   )
 }

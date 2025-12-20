@@ -4,7 +4,9 @@ import type { PipelineGraph } from '../types/pipeline'
 interface Props {
   nodeId: string
   graph: PipelineGraph | null
+  directory: string | null
   onClose: () => void
+  onExecute: () => void
 }
 
 const getStatusColor = (status: string): string => {
@@ -23,7 +25,7 @@ const getStatusColor = (status: string): string => {
   }
 }
 
-export default function NodeDetailsPanel({ nodeId, graph, onClose }: Props) {
+export default function NodeDetailsPanel({ nodeId, graph, directory, onClose, onExecute }: Props) {
   const [isExecuting, setIsExecuting] = useState(false)
   const step = graph?.steps.find((s) => s.id === nodeId)
   
@@ -46,9 +48,10 @@ export default function NodeDetailsPanel({ nodeId, graph, onClose }: Props) {
 
   const handleExecute = async () => {
     setIsExecuting(true)
+    onExecute()
     try {
       // @ts-ignore
-      await window.electronAPI?.runAspireDo?.(step.id)
+      await window.electronAPI?.runAspireDo?.(directory, step.id)
     } catch (err) {
       console.error('Failed to execute step:', err)
     } finally {
