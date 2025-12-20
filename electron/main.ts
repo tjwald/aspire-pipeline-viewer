@@ -69,3 +69,27 @@ ipcMain.handle('run-aspire-do', async (_evt, directory: string, step: string) =>
     }
   })
 })
+
+ipcMain.handle('get-apphost-diagnostics', async (_evt, directory: string) => {
+  return new Promise((resolve, reject) => {
+    try {
+      const cmd = process.platform === 'win32' ? 'cmd' : 'sh'
+      const args = process.platform === 'win32' ? ['/c', 'aspire', 'do', 'diagnostic'] : ['-lc', `aspire do diagnostic`]
+      const child = spawn(cmd, args, { cwd: directory, stdio: 'pipe' })
+      let output = ''
+      child.stdout.on('data', (data) => {
+        output += data.toString()
+        mainWindow?.webContents.send('aspire-output', data.toString())
+      })
+      child.stderr.on('data', (data) => {
+        output += data.toString()
+        mainWindow?.webContents.send('aspire-error', data.toString())
+      })
+      child.on('close', (code) => {
+        resolve({ code, output })
+      })
+    } catch (err) {
+      reject(err)
+    }
+  })
+})

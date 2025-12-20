@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 
 const electronAPI = {
   selectApphostDirectory: () => ipcRenderer.invoke('select-apphost-directory'),
+  getApphostDiagnostics: (directory: string) => ipcRenderer.invoke('get-apphost-diagnostics', directory),
   runAspireDo: (directory: string, step: string) => ipcRenderer.invoke('run-aspire-do', directory, step),
   onAspireOutput: (cb: (data: string) => void) => ipcRenderer.on('aspire-output', (_e, data) => cb(data)),
   onAspireError: (cb: (data: string) => void) => ipcRenderer.on('aspire-error', (_e, data) => cb(data)),
