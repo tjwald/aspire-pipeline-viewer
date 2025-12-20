@@ -51,7 +51,7 @@ export default function App() {
           </button>
         </div>
         <div className="flex-1 overflow-hidden">
-          <PipelineViewer graph={pipelineGraph} onNodeSelected={handleNodeSelected} />
+          <PipelineViewer graph={pipelineGraph} selectedNodeId={selectedNodeId} onNodeSelected={handleNodeSelected} />
         </div>
       </div>
       {selectedNodeId && (

@@ -1,3 +1,30 @@
 html, body, #root { height: 100%; }
 body { font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; }
 .hidden { display: none; }
+
+/* React Flow overrides */
+.react-flow {
+  background-color: #f9fafb;
+}
+
+.react-flow__controls {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+}
+
+.react-flow__controls-button {
+  background-color: #ffffff;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+}
+
+.react-flow__controls-button:hover {
+  background-color: #f3f4f6;
+}
+
+.react-flow__minimap {
+  background-color: #f3f4f6;
+  border: 1px solid #e5e7eb;
+}
