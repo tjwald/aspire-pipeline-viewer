@@ -25,7 +25,7 @@ export default function App() {
         // @ts-ignore
         const result = await window.electronAPI?.getApphostDiagnostics?.(selectedDirectory)
         if (result?.output) {
-          const { parseDiagnostics } = await import('./utils/diagnosticsParser')
+          const { parseDiagnostics } = await import('@aspire/core')
           const graph = parseDiagnostics(result.output)
           setPipelineGraph(graph)
           showToast(`Loaded pipeline with ${graph.steps.length} steps`, 'success', TIMEOUTS.TOAST_DURATION_SHORT)

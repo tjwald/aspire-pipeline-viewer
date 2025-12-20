@@ -8,7 +8,7 @@ import ReactFlow, {
   MarkerType,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
-import type { PipelineGraph, PipelineStep, ExecutionStatus } from '../types/pipeline'
+import type { PipelineGraph, PipelineStep, ExecutionStatus } from '@aspire/core'
 import { EXECUTION_STATUS_COLORS } from '../theme'
 
 interface Props {

@@ -50,7 +50,7 @@ export function usePipelineData(directory: string | null) {
       // @ts-ignore
       const result = await window.electronAPI?.getApphostDiagnostics?.(directory)
       if (result?.output) {
-        const { parseDiagnostics } = await import('../utils/diagnosticsParser')
+        const { parseDiagnostics } = await import('@aspire/core')
         const pipelineGraph = parseDiagnostics(result.output)
         setGraph(pipelineGraph)
         showToast(`Loaded pipeline with ${pipelineGraph.steps.length} steps`, 'success', 3000)

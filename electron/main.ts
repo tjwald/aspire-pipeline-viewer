@@ -45,10 +45,13 @@ app.on('activate', () => {
 
 // IPC handlers (skeleton)
 ipcMain.handle('select-apphost-directory', async () => {
-  const res = await dialog.showOpenDialog({ properties: ['openDirectory'] })
-  if (res.canceled || res.filePaths.length === 0) return null
-  return res.filePaths[0]
-})
+  const result = await dialog.showOpenDialog(mainWindow!, {
+    properties: ['openDirectory'],
+    title: 'Select AppHost Directory'
+  });
+  if (result.canceled || result.filePaths.length === 0) return null;
+  return result.filePaths[0];
+});
 
 ipcMain.handle('run-aspire-do', async (_evt, directory: string, step: string) => {
   return new Promise((resolve, reject) => {

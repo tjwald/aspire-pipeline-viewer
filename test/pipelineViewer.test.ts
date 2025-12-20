@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import type { PipelineGraph } from '../src/types/pipeline'
+import type { PipelineGraph } from '@aspire/core'
 
 describe('PipelineViewer', () => {
   it('should render DAG nodes with topological layout', () => {

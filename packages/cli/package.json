@@ -1,0 +1,17 @@
+{
+  "name": "@aspire/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "aspire-cli": "dist/index.js"
+  },
+  "dependencies": {
+    "@aspire/core": "workspace:*"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "test": "vitest"
+  }
+}

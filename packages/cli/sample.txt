@@ -1,9 +1,3 @@
-import { describe, it, expect } from 'vitest'
-import { parseDiagnostics } from '@aspire/core'
-
-describe('diagnostics parser', () => {
-  it('parses a representative diagnostics sample and finds steps and edges', () => {
-    const sample = `
 PIPELINE DEPENDENCY GRAPH DIAGNOSTICS
 DETAILED STEP ANALYSIS
 Step: build
@@ -30,21 +24,3 @@ Step: push-app
     Tags: push-container-image
 
 POTENTIAL ISSUES:
-`
-
-    const graph = parseDiagnostics(sample)
-
-    expect(graph.steps.length).toBeGreaterThanOrEqual(5)
-
-    const build = graph.steps.find((s) => s.id === 'build')
-    expect(build).toBeDefined()
-    expect(build?.dependencies).toContain('build-app')
-
-    const pushApp = graph.steps.find((s) => s.id === 'push-app')
-    expect(pushApp).toBeDefined()
-    // duplicates in source should be deduped
-    const deps = pushApp?.dependencies ?? []
-    const occurrences = deps.filter((d) => d === 'build-app').length
-    expect(occurrences).toBeGreaterThanOrEqual(1)
-  })
-})

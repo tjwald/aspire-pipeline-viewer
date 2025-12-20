@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import type { PipelineGraph } from '../types/pipeline'
+import type { PipelineGraph } from '@aspire/core'
 import { STATUS_TEXT_COLORS } from '../theme'
 
 interface Props {
