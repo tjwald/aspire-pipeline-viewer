@@ -254,7 +254,7 @@ Run `npm run test` in watch mode to debug test failures interactively.
 
 - [Electron Documentation](https://www.electronjs.org/docs)
 - [React Flow Documentation](https://reactflow.dev/)
-- [Azure Aspire Documentation](https://learn.microsoft.com/en-us/dotnet/aspire/)
+- [Aspire Documentation](https://aspire.dev)
 
 ## License
 

@@ -47,13 +47,24 @@ export default function NodeDetailsPanel({ nodeId, graph, directory, onClose, on
     .filter(Boolean) ?? []
 
   const handleExecute = async () => {
+    if (!directory) {
+      alert('Error: No directory selected')
+      return
+    }
     setIsExecuting(true)
     onExecute()
     try {
       // @ts-ignore
-      await window.electronAPI?.runAspireDo?.(directory, step.id)
+      const result = await window.electronAPI?.runAspireDo?.(directory, step.id)
+      if (result?.code === 0) {
+        console.log('Step executed successfully')
+      } else {
+        console.warn('Step execution completed with warnings or errors')
+      }
     } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error'
       console.error('Failed to execute step:', err)
+      alert(`Failed to execute step: ${errorMsg}`)
     } finally {
       setIsExecuting(false)
     }
