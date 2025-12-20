@@ -8,9 +8,6 @@ importers:
 
   .:
     dependencies:
-      '@aspire/core':
-        specifier: workspace:*
-        version: link:packages/core
       electron:
         specifier: ^39.2.7
         version: 39.2.7
@@ -77,6 +74,48 @@ importers:
         version: link:../core
 
   packages/core: {}
+
+  src/core: {}
+
+  src/frontends/cli:
+    dependencies:
+      '@aspire/core':
+        specifier: workspace:*
+        version: link:../../core
+
+  src/frontends/electron:
+    dependencies:
+      '@aspire/core':
+        specifier: workspace:*
+        version: link:../../core
+      electron:
+        specifier: ^39.2.7
+        version: 39.2.7
+
+  src/frontends/web:
+    dependencies:
+      '@aspire/core':
+        specifier: workspace:*
+        version: link:../../core
+      react:
+        specifier: ^19.2.3
+        version: 19.2.3
+      react-dom:
+        specifier: ^19.2.3
+        version: 19.2.3(react@19.2.3)
+      reactflow:
+        specifier: ^11.11.4
+        version: 11.11.4(@types/react@18.3.27)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+    devDependencies:
+      '@types/react':
+        specifier: ^18.3.27
+        version: 18.3.27
+      '@types/react-dom':
+        specifier: ^18.3.7
+        version: 18.3.7(@types/react@18.3.27)
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
 
 packages:
 

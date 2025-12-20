@@ -1,5 +1,7 @@
 # Migration to pnpm Workspaces (Updated)
 
+> Note: Workspace roots now live under `src/core` and `src/frontends/*` (web/cli/electron). References to `packages/*` below are legacy and will be pruned as the new structure solidifies.
+
 ## Overview
 We’ve migrated the repo to pnpm workspaces with a shared `@aspire/core` package and a headless `@aspire/cli` package, while preserving the existing Electron + React renderer app. This document captures the current state, what changed, and how to run and iterate.
 

@@ -1,0 +1,14 @@
+{
+  "name": "@aspire/electron",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "../../dist-electron/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "electron": "^39.2.7",
+    "@aspire/core": "workspace:*"
+  }
+}

@@ -5,8 +5,8 @@
   "description": "Visual DAG viewer for .NET Aspire pipelines",
   "type": "module",
   "workspaces": [
-    "packages/*",
-    "electron"
+    "src/core",
+    "src/frontends/*"
   ],
   "main": "dist-electron/main.js",
   "scripts": {
@@ -16,14 +16,13 @@
     "test:all": "pnpm -w -r test",
     "dev:electron": "electron .",
     "dev:all": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
-    "build": "vite build && tsc -p electron/tsconfig.json",
+    "build": "vite build && tsc -p src/frontends/electron/tsconfig.json",
     "preview": "vite preview",
     "lint": "eslint \"src/**/*.{ts,tsx}\" --max-warnings=0",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,md}\"",
     "test": "vitest"
   },
   "dependencies": {
-    "@aspire/core": "workspace:*",
     "electron": "^39.2.7",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
