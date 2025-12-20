@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react'
+import { TOAST_STYLES } from '../theme'
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning'
 
@@ -14,20 +15,6 @@ interface Props {
   onClose: () => void
 }
 
-const getToastStyles = (type: ToastType): { bg: string; text: string; icon: string } => {
-  switch (type) {
-    case 'success':
-      return { bg: 'bg-green-100', text: 'text-green-800', icon: '✓' }
-    case 'error':
-      return { bg: 'bg-red-100', text: 'text-red-800', icon: '✕' }
-    case 'warning':
-      return { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: '⚠' }
-    case 'info':
-    default:
-      return { bg: 'bg-blue-100', text: 'text-blue-800', icon: 'ℹ' }
-  }
-}
-
 export default function Toast({ toast, onClose }: Props) {
   useEffect(() => {
     if (!toast) return
@@ -37,7 +24,7 @@ export default function Toast({ toast, onClose }: Props) {
 
   if (!toast) return null
 
-  const styles = getToastStyles(toast.type)
+  const styles = TOAST_STYLES[toast.type]
 
   return (
     <div className={`fixed bottom-48 left-4 right-4 max-w-sm ${styles.bg} ${styles.text} px-4 py-3 rounded-lg shadow-lg flex items-start gap-3`}>

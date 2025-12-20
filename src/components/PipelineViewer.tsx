@@ -9,27 +9,12 @@ import ReactFlow, {
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import type { PipelineGraph, PipelineStep, ExecutionStatus } from '../types/pipeline'
+import { EXECUTION_STATUS_COLORS } from '../theme'
 
 interface Props {
   graph: PipelineGraph | null
   selectedNodeId: string | null
   onNodeSelected: (id: string) => void
-}
-
-const getNodeColor = (status: ExecutionStatus): string => {
-  switch (status) {
-    case 'Running':
-      return '#3b82f6' // blue
-    case 'Success':
-      return '#10b981' // green
-    case 'Failed':
-      return '#ef4444' // red
-    case 'Skipped':
-      return '#9ca3af' // gray
-    case 'Pending':
-    default:
-      return '#f5f5f5' // light gray
-  }
 }
 
 export default function PipelineViewer({ graph, selectedNodeId, onNodeSelected }: Props) {
@@ -95,7 +80,7 @@ export default function PipelineViewer({ graph, selectedNodeId, onNodeSelected }
           },
           position: { x, y },
           style: {
-            background: isSelected ? '#1f2937' : getNodeColor(step.status),
+            background: isSelected ? '#1f2937' : EXECUTION_STATUS_COLORS[step.status as ExecutionStatus],
             color: isSelected || step.status === 'Success' || step.status === 'Failed' ? '#fff' : '#000',
             border: isSelected ? '3px solid #1f2937' : '1px solid #ddd',
             borderRadius: '8px',

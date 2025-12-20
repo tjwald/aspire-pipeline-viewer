@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import type { PipelineGraph } from '../types/pipeline'
+import { STATUS_TEXT_COLORS } from '../theme'
 
 interface Props {
   nodeId: string
@@ -7,22 +8,6 @@ interface Props {
   directory: string | null
   onClose: () => void
   onExecute: () => void
-}
-
-const getStatusColor = (status: string): string => {
-  switch (status) {
-    case 'Running':
-      return 'text-blue-600'
-    case 'Success':
-      return 'text-green-600'
-    case 'Failed':
-      return 'text-red-600'
-    case 'Skipped':
-      return 'text-gray-500'
-    case 'Pending':
-    default:
-      return 'text-gray-400'
-  }
 }
 
 export default function NodeDetailsPanel({ nodeId, graph, directory, onClose, onExecute }: Props) {
@@ -75,7 +60,7 @@ export default function NodeDetailsPanel({ nodeId, graph, directory, onClose, on
       <div className="flex justify-between items-start mb-4">
         <div className="flex-1">
           <h3 className="text-lg font-semibold text-gray-900">{step.name}</h3>
-          <div className={`text-xs font-medium mt-1 ${getStatusColor(step.status)}`}>{step.status}</div>
+          <div className={`text-xs font-medium mt-1 ${STATUS_TEXT_COLORS[step.status]}`}>{step.status}</div>
         </div>
         <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-lg">✕</button>
       </div>

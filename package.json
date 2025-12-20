@@ -4,6 +4,7 @@
   "private": true,
   "description": "Visual DAG viewer for .NET Aspire pipelines",
   "type": "module",
+  "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
     "dev:electron": "electron .",
