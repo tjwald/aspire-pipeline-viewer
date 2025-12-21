@@ -1,0 +1,89 @@
+/* Graph area */
+.graph-area {
+  flex: 1;
+  background: #1e1e1e;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.graph-container {
+  flex: 1;
+  overflow: auto;
+  padding: 20px;
+  position: relative;
+  background: #1e1e1e;
+  cursor: grab;
+}
+
+.graph-container:active {
+  cursor: grabbing;
+}
+
+.graph-wrapper {
+  display: inline-block;
+  transform-origin: top left;
+  transition: transform 0.1s ease-out;
+}
+
+.graph-svg {
+  display: block;
+  background: transparent;
+}
+
+.graph-node {
+  cursor: pointer;
+  transition: filter 0.2s;
+}
+
+.graph-node:hover rect {
+  filter: brightness(1.2);
+}
+
+.graph-node.selected rect {
+  stroke: #0e639c;
+  stroke-width: 3;
+}
+
+.graph-node text {
+  pointer-events: none;
+  font-size: 12px;
+  text-anchor: middle;
+  fill: #e0e0e0;
+}
+
+/* Aggregator nodes */
+.aggregator-node polygon {
+  cursor: pointer;
+  transition: filter 0.2s;
+}
+
+.aggregator-node:hover polygon {
+  filter: brightness(1.2);
+}
+
+.aggregator-node.selected polygon {
+  stroke: #0e639c;
+  stroke-width: 3;
+}
+
+.graph-edge {
+  stroke: #858585;
+  stroke-width: 2;
+  fill: none;
+  marker-end: url(#arrowhead);
+  opacity: 0.25;
+  transition: opacity 0.2s, stroke-width 0.2s;
+}
+
+.graph-edge.highlighted-incoming {
+  opacity: 1;
+  stroke-width: 2.5;
+  stroke: #4fc3f7 !important;
+}
+
+.graph-edge.highlighted-outgoing {
+  opacity: 1;
+  stroke-width: 2.5;
+  stroke: #81c784 !important;
+}
