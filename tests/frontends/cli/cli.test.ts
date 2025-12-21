@@ -7,8 +7,8 @@ import fs from 'fs'
 const TEST_DIR = path.dirname(__filename)
 const ROOT_DIR = path.resolve(TEST_DIR, '../../..')
 const CLI_PATH = path.join(ROOT_DIR, 'src/frontends/cli/dist/index.js')
-const SAMPLE_DIAGNOSTICS = path.join(ROOT_DIR, 'sample-diagnostics.txt')
-const WORKING_DIR = ROOT_DIR
+const SAMPLE_DIAGNOSTICS = path.join(TEST_DIR, 'sample-diagnostics.txt')
+const WORKING_DIR = TEST_DIR
 
 function runCli(args: string[]): Promise<{ code: number; stdout: string; stderr: string }> {
   return new Promise((resolve) => {
