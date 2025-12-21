@@ -591,12 +591,12 @@
     </div>
 
     <script>
-        // Sample pipeline data
+        // Sample pipeline data with 4 resources
         const pipelineData = {
             id: 'aspire-pipeline',
             name: 'aspire-pipeline',
             steps: [
-                // App install steps
+                // ========== APP RESOURCE ==========
                 {
                     id: 'install-uv-app',
                     name: 'install-uv-app',
@@ -613,26 +613,6 @@
                     resource: 'app (ExecutableContainerResource)',
                     tags: ['install', 'build-compute']
                 },
-                // Frontend install steps
-                {
-                    id: 'install-frontend',
-                    name: 'install-frontend',
-                    description: 'Install frontend dependencies',
-                    dependencies: [],
-                    resource: 'frontend (ExecutableContainerResource)',
-                    tags: ['install']
-                },
-                // AGGREGATOR: install
-                {
-                    id: 'install',
-                    name: 'install',
-                    description: 'Install all dependencies',
-                    dependencies: ['install-app', 'install-frontend'],
-                    resource: null,
-                    tags: [],
-                    isAggregator: true
-                },
-                // App lint steps (3 steps)
                 {
                     id: 'lint-ruff-app',
                     name: 'lint-ruff-app',
@@ -650,14 +630,75 @@
                     tags: ['lint']
                 },
                 {
-                    id: 'lint-black-app',
-                    name: 'lint-black-app',
-                    description: 'Format check with Black',
+                    id: 'test-app',
+                    name: 'test-app',
+                    description: 'Test app functionality',
                     dependencies: ['install-app'],
                     resource: 'app (ExecutableContainerResource)',
+                    tags: ['test']
+                },
+                
+                // ========== API RESOURCE ==========
+                {
+                    id: 'install-api',
+                    name: 'install-api',
+                    description: 'Install API dependencies',
+                    dependencies: [],
+                    resource: 'api (ContainerResource)',
+                    tags: ['install']
+                },
+                {
+                    id: 'lint-api',
+                    name: 'lint-api',
+                    description: 'Lint API code',
+                    dependencies: ['install-api'],
+                    resource: 'api (ContainerResource)',
                     tags: ['lint']
                 },
-                // Frontend lint steps (2 steps)
+                {
+                    id: 'test-api',
+                    name: 'test-api',
+                    description: 'Test API endpoints',
+                    dependencies: ['install-api'],
+                    resource: 'api (ContainerResource)',
+                    tags: ['test']
+                },
+                
+                // ========== DATABASE RESOURCE ==========
+                {
+                    id: 'migrate-db',
+                    name: 'migrate-db',
+                    description: 'Run database migrations',
+                    dependencies: [],
+                    resource: 'database (PostgresResource)',
+                    tags: ['install', 'migrate']
+                },
+                {
+                    id: 'seed-db',
+                    name: 'seed-db',
+                    description: 'Seed database with test data',
+                    dependencies: ['migrate-db'],
+                    resource: 'database (PostgresResource)',
+                    tags: ['install', 'seed']
+                },
+                {
+                    id: 'test-db',
+                    name: 'test-db',
+                    description: 'Test database integrity',
+                    dependencies: ['seed-db'],
+                    resource: 'database (PostgresResource)',
+                    tags: ['test']
+                },
+                
+                // ========== FRONTEND RESOURCE ==========
+                {
+                    id: 'install-frontend',
+                    name: 'install-frontend',
+                    description: 'Install frontend dependencies',
+                    dependencies: [],
+                    resource: 'frontend (ExecutableContainerResource)',
+                    tags: ['install']
+                },
                 {
                     id: 'lint-eslint-frontend',
                     name: 'lint-eslint-frontend',
@@ -674,44 +715,43 @@
                     resource: 'frontend (ExecutableContainerResource)',
                     tags: ['lint']
                 },
-                // AGGREGATOR: lint
-                {
-                    id: 'lint',
-                    name: 'lint',
-                    description: 'Lint all code',
-                    dependencies: ['install', 'lint-ruff-app', 'lint-mypy-app', 'lint-black-app', 'lint-eslint-frontend', 'lint-prettier-frontend'],
-                    resource: null,
-                    tags: [],
-                    isAggregator: true
-                },
-                // Test steps
-                {
-                    id: 'test-app',
-                    name: 'test-app',
-                    description: 'Test app functionality',
-                    dependencies: ['install-app'],  // Only depends on install, not lint
-                    resource: 'app (ExecutableContainerResource)',
-                    tags: ['test']
-                },
                 {
                     id: 'test-frontend',
                     name: 'test-frontend',
                     description: 'Test frontend functionality',
-                    dependencies: ['install-frontend'],  // Only depends on install, not lint
+                    dependencies: ['install-frontend'],
                     resource: 'frontend (ExecutableContainerResource)',
                     tags: ['test']
                 },
-                // AGGREGATOR: test
+                
+                // ========== AGGREGATORS ==========
                 {
-                    id: 'test',
-                    name: 'test',
-                    description: 'Run all tests',
-                    dependencies: ['install', 'test-app', 'test-frontend'],
+                    id: 'install',
+                    name: 'install',
+                    description: 'Install all dependencies',
+                    dependencies: ['install-app', 'install-api', 'seed-db', 'install-frontend'],
                     resource: null,
                     tags: [],
                     isAggregator: true
                 },
-                // AGGREGATOR: ci
+                {
+                    id: 'lint',
+                    name: 'lint',
+                    description: 'Lint all code',
+                    dependencies: ['install', 'lint-ruff-app', 'lint-mypy-app', 'lint-api', 'lint-eslint-frontend', 'lint-prettier-frontend'],
+                    resource: null,
+                    tags: [],
+                    isAggregator: true
+                },
+                {
+                    id: 'test',
+                    name: 'test',
+                    description: 'Run all tests',
+                    dependencies: ['install', 'test-app', 'test-api', 'test-db', 'test-frontend'],
+                    resource: null,
+                    tags: [],
+                    isAggregator: true
+                },
                 {
                     id: 'ci',
                     name: 'ci',
@@ -936,6 +976,7 @@
             return match ? match[1].toLowerCase() : '_shared_';
         }
 
+        // Position nodes - use actual depths, aggregators align with their feeding steps
         function calculateHierarchicalPositions(levels) {
             const positions = {};
             const nodeSpacing = 200;
@@ -958,6 +999,7 @@
             });
             
             // Calculate aggregator rows based on inter-aggregator dependencies
+            // Using a phase-based approach: install=row 2, lint/test=row 4, ci=row 6
             const aggregatorRows = {};
             
             function calculateAggregatorRow(agg, visited = new Set()) {
@@ -969,7 +1011,8 @@
                 const aggDeps = deps.filter(depId => aggregators.some(a => a.id === depId));
                 
                 if (aggDeps.length === 0) {
-                    // No aggregator dependencies - find max depth of its non-aggregator deps
+                    // No aggregator dependencies - this is a "phase 1" aggregator (like install)
+                    // Find max depth of its non-aggregator deps
                     const nonAggDeps = deps.filter(depId => !aggregators.some(a => a.id === depId));
                     const maxDepth = Math.max(...nonAggDeps.map(id => levels[id] || 0), 0);
                     aggregatorRows[agg.id] = maxDepth + 1;
@@ -983,6 +1026,7 @@
                             maxAggRow = Math.max(maxAggRow, depRow);
                         }
                     });
+                    // Also consider non-aggregator deps
                     const nonAggDeps = deps.filter(depId => !aggregators.some(a => a.id === depId));
                     const maxNonAggDepth = nonAggDeps.length > 0 
                         ? Math.max(...nonAggDeps.map(id => levels[id] || 0)) 
@@ -995,20 +1039,24 @@
             
             aggregators.forEach(agg => calculateAggregatorRow(agg));
             
-            // Assign rows to resource steps - place them in the row BEFORE the aggregator they feed into
+            // Now assign rows to resource steps
+            // Key insight: resource steps should be placed in the row BEFORE the aggregator they feed into
+            // This creates gaps that align resource steps with their phase
             const stepRows = {};
             
             realSteps.forEach(step => {
                 const targetAggs = feedsIntoAggregator[step.id] || [];
                 if (targetAggs.length > 0) {
+                    // Find the earliest (smallest row) aggregator this step feeds into
                     const minAggRow = Math.min(...targetAggs.map(aggId => aggregatorRows[aggId]));
                     stepRows[step.id] = minAggRow - 1;
                 } else {
+                    // Not feeding into any aggregator - use natural depth
                     stepRows[step.id] = levels[step.id];
                 }
             });
             
-            // Ensure dependency order
+            // Ensure dependency order: if step A depends on step B, A must be below B
             let changed = true;
             let iterations = 0;
             while (changed && iterations < 100) {
