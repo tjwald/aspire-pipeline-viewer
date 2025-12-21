@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react'
 import { Sidebar } from '../../shared/components/Sidebar'
 import { GraphView } from '../../shared/components/GraphView'
 import { DetailsPanel } from '../../shared/components/DetailsPanel'
+import { ErrorBoundary } from '../../shared/components/ErrorBoundary'
 import type { PipelineGraph } from '@aspire/core'
 import '../../shared/styles/base.css'
 import '../../shared/styles/sidebar.css'
@@ -80,22 +81,28 @@ export default function App() {
 
   return (
     <div className="app-container" style={{ display: 'flex', height: '100vh' }}>
-      <Sidebar
-        graph={graph}
-        selectedStepId={selectedStepId}
-        onSelectStep={setSelectedStepId}
-        onVisibleStepsChange={setVisibleStepIds}
-        workspaceName={workspaceName}
-        workspacePath={workspacePath}
-        onOpenWorkspace={handleOpenWorkspace}
-      />
-      <GraphView
-        graph={graph}
-        selectedStepId={selectedStepId}
-        onSelectStep={setSelectedStepId}
-        visibleStepIds={visibleStepIds}
-      />
-      <DetailsPanel graph={graph} selectedStepId={selectedStepId} />
+      <ErrorBoundary section="Sidebar">
+        <Sidebar
+          graph={graph}
+          selectedStepId={selectedStepId}
+          onSelectStep={setSelectedStepId}
+          onVisibleStepsChange={setVisibleStepIds}
+          workspaceName={workspaceName}
+          workspacePath={workspacePath}
+          onOpenWorkspace={handleOpenWorkspace}
+        />
+      </ErrorBoundary>
+      <ErrorBoundary section="Graph View">
+        <GraphView
+          graph={graph}
+          selectedStepId={selectedStepId}
+          onSelectStep={setSelectedStepId}
+          visibleStepIds={visibleStepIds}
+        />
+      </ErrorBoundary>
+      <ErrorBoundary section="Details Panel">
+        <DetailsPanel graph={graph} selectedStepId={selectedStepId} />
+      </ErrorBoundary>
     </div>
   )
 }

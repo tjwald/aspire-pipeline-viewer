@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import React, { useCallback, useRef, useState } from 'react'
 
 export function useZoomPan() {
   const [zoom, setZoom] = useState(1)

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import type { PipelineGraph } from '@aspire/core'
-import { calculateHierarchicalPositions, getResourceColor, wrapStepName, type ResourceColumn, type CenterLane } from '../utils'
+import { calculateHierarchicalPositions, getResourceColor, wrapStepName, isAggregator, type CenterLane } from '../utils'
 import { useZoomPan } from '../hooks/useZoomPan'
 import '../styles/graph.css'
 
@@ -9,11 +9,6 @@ export type GraphViewProps = {
   selectedStepId?: string
   onSelectStep?: (id: string) => void
   visibleStepIds?: Set<string>
-}
-
-// Check if step is an aggregator (no resource = aggregator)
-function isAggregator(step: { resource?: string }): boolean {
-  return !step.resource
 }
 
 export function GraphView({ graph, selectedStepId, onSelectStep, visibleStepIds }: GraphViewProps) {
@@ -73,7 +68,7 @@ export function GraphView({ graph, selectedStepId, onSelectStep, visibleStepIds 
   }, [positions, canvasHeight])
 
   // Determine which step to highlight edges for (selected takes precedence over hover)
-  const highlightedStepId = selectedStepId || hoveredStepId
+  const _highlightedStepId = selectedStepId || hoveredStepId
 
   // Calculate transitive predecessors for a step
   const getTransitivePredecessors = useMemo(() => {
