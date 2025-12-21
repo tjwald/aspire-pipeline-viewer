@@ -8,6 +8,7 @@ const __dirname = path.dirname(__filename)
 
 export default defineConfig({
   root: path.resolve(__dirname, 'renderer'),
+  base: './', // Use relative paths for file:// protocol in Electron
   plugins: [react()],
   server: {
     port: 5174,

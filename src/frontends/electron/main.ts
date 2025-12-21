@@ -39,12 +39,14 @@ function createWindow() {
     })
   })
 
-  const isDev = !app.isPackaged
+  const isDev = !app.isPackaged && process.env.NODE_ENV !== 'test'
+  const isTest = process.env.NODE_ENV === 'test'
 
   if (isDev) {
     mainWindow.loadURL('http://localhost:5174')
     mainWindow.webContents.openDevTools()
   } else {
+    // Load the built renderer (for production and test)
     mainWindow.loadFile(path.join(__dirname, 'renderer/index.html'))
   }
 
