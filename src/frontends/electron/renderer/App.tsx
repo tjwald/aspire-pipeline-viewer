@@ -16,6 +16,7 @@ export default function App() {
   const [workspacePath, setWorkspacePath] = useState<string | undefined>()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [visibleStepIds, setVisibleStepIds] = useState<Set<string> | undefined>()
 
   const handleOpenWorkspace = useCallback(async () => {
     if (!window.electronAPI) {
@@ -83,6 +84,7 @@ export default function App() {
         graph={graph}
         selectedStepId={selectedStepId}
         onSelectStep={setSelectedStepId}
+        onVisibleStepsChange={setVisibleStepIds}
         workspaceName={workspaceName}
         workspacePath={workspacePath}
         onOpenWorkspace={handleOpenWorkspace}
@@ -91,6 +93,7 @@ export default function App() {
         graph={graph}
         selectedStepId={selectedStepId}
         onSelectStep={setSelectedStepId}
+        visibleStepIds={visibleStepIds}
       />
       <DetailsPanel graph={graph} selectedStepId={selectedStepId} />
     </div>

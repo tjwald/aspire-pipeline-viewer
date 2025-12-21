@@ -8,6 +8,7 @@ export type GraphViewProps = {
   graph: PipelineGraph
   selectedStepId?: string
   onSelectStep?: (id: string) => void
+  visibleStepIds?: Set<string>
 }
 
 // Check if step is an aggregator (no resource = aggregator)
@@ -15,7 +16,7 @@ function isAggregator(step: { resource?: string }): boolean {
   return !step.resource
 }
 
-export function GraphView({ graph, selectedStepId, onSelectStep }: GraphViewProps) {
+export function GraphView({ graph, selectedStepId, onSelectStep, visibleStepIds }: GraphViewProps) {
   const wrapperRef = useRef<HTMLDivElement | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [hoveredStepId, setHoveredStepId] = useState<string | null>(null)
@@ -29,7 +30,32 @@ export function GraphView({ graph, selectedStepId, onSelectStep }: GraphViewProp
     }
   }, [attachWheelZoom])
 
-  const layoutResult = useMemo(() => calculateHierarchicalPositions(graph), [graph])
+  // Create a filtered graph with only visible steps
+  const filteredGraph = useMemo((): PipelineGraph => {
+    if (!visibleStepIds) return graph
+    
+    const visibleSteps = graph.steps.filter(step => visibleStepIds.has(step.id))
+    const visibleStepIdSet = new Set(visibleSteps.map(s => s.id))
+    
+    // Filter edges to only include those between visible steps
+    const visibleEdges = graph.edges.filter(edge => 
+      visibleStepIdSet.has(edge.source) && visibleStepIdSet.has(edge.target)
+    )
+    
+    // Filter step dependencies to only include visible steps
+    const filteredSteps = visibleSteps.map(step => ({
+      ...step,
+      dependencies: step.dependencies?.filter(depId => visibleStepIdSet.has(depId))
+    }))
+    
+    return {
+      ...graph,
+      steps: filteredSteps,
+      edges: visibleEdges
+    }
+  }, [graph, visibleStepIds])
+
+  const layoutResult = useMemo(() => calculateHierarchicalPositions(filteredGraph), [filteredGraph])
   const { positions, resourceColumns, centerLane, canvasHeight } = layoutResult
 
   // Calculate dynamic canvas size based on node positions
@@ -58,7 +84,7 @@ export function GraphView({ graph, selectedStepId, onSelectStep }: GraphViewProp
       if (visited.has(stepId)) return new Set()
       visited.add(stepId)
       
-      const step = graph.steps.find((s) => s.id === stepId)
+      const step = filteredGraph.steps.find((s) => s.id === stepId)
       const predecessors = new Set<string>()
       
       if (step?.dependencies) {
@@ -74,7 +100,7 @@ export function GraphView({ graph, selectedStepId, onSelectStep }: GraphViewProp
     }
     
     return getPredecessors
-  }, [graph])
+  }, [filteredGraph])
 
   // Calculate transitive successors for a step
   const getTransitiveSuccessors = useMemo(() => {
@@ -82,7 +108,7 @@ export function GraphView({ graph, selectedStepId, onSelectStep }: GraphViewProp
     
     // Build reverse dependency map
     const dependents: Record<string, string[]> = {}
-    graph.steps.forEach((step) => {
+    filteredGraph.steps.forEach((step) => {
       step.dependencies?.forEach((depId) => {
         if (!dependents[depId]) dependents[depId] = []
         dependents[depId].push(step.id)
@@ -107,7 +133,7 @@ export function GraphView({ graph, selectedStepId, onSelectStep }: GraphViewProp
     }
     
     return getSuccessors
-  }, [graph])
+  }, [filteredGraph])
 
   // Get highlighted predecessors and successors for the selected node (full chain on click)
   const highlightedPredecessors = useMemo(() => {
@@ -143,15 +169,15 @@ export function GraphView({ graph, selectedStepId, onSelectStep }: GraphViewProp
           fill="rgba(255, 255, 255, 0.03)"
           rx={8}
         />
-        {/* Column header background */}
+        {/* Column header background - full width like pipeline */}
         <rect
-          x={col.centerX - 60}
+          x={col.startX}
           y={30}
-          width={120}
+          width={col.width}
           height={28}
           fill={col.color}
           opacity={0.9}
-          rx={6}
+          rx={4}
         />
         {/* Column header text */}
         <text
@@ -209,11 +235,11 @@ export function GraphView({ graph, selectedStepId, onSelectStep }: GraphViewProp
 
   const renderEdges = () => {
     const edges: React.ReactNode[] = []
-    graph.steps.forEach((step) => {
+    filteredGraph.steps.forEach((step) => {
       step.dependencies?.forEach((dep) => {
         const from = positions[dep]
         const to = positions[step.id]
-        const fromStep = graph.steps.find((s) => s.id === dep)
+        const fromStep = filteredGraph.steps.find((s) => s.id === dep)
         const toStep = step
         
         if (from && to) {
@@ -277,7 +303,7 @@ export function GraphView({ graph, selectedStepId, onSelectStep }: GraphViewProp
   }
 
   const renderNodes = () => {
-    return graph.steps
+    return filteredGraph.steps
       .filter((step) => !isAggregator(step))
       .map((step) => {
         const pos = positions[step.id]
@@ -322,7 +348,7 @@ export function GraphView({ graph, selectedStepId, onSelectStep }: GraphViewProp
   }
 
   const renderAggregatorNodes = () => {
-    return graph.steps
+    return filteredGraph.steps
       .filter((step) => isAggregator(step))
       .map((step) => {
         const pos = positions[step.id]
