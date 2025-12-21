@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import path from 'path'
 import { spawn } from 'child_process'
+import { validateDirectory, validateStepName } from '@aspire/core'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -12,7 +13,30 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
+      // Additional security: disable web security features that could be exploited
+      webSecurity: true,
+      allowRunningInsecureContent: false,
     },
+  })
+
+  // Set Content Security Policy for additional protection
+  mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          "default-src 'self'; " +
+          "script-src 'self' 'unsafe-inline'; " +
+          "style-src 'self' 'unsafe-inline'; " +
+          "img-src 'self' data:; " +
+          "connect-src 'self' http://localhost:* ws://localhost:*; " +
+          "font-src 'self'; " +
+          "object-src 'none'; " +
+          "base-uri 'self'; " +
+          "form-action 'self'"
+        ]
+      }
+    })
   })
 
   const isDev = !app.isPackaged
@@ -46,13 +70,23 @@ function runAspireCommand(
 ): Promise<{ code: number | null; output: string }> {
   return new Promise((resolve, reject) => {
     try {
+      // Validate directory to prevent path traversal
+      const dirValidation = validateDirectory(directory)
+      if (!dirValidation.valid) {
+        reject(new Error(`Invalid directory: ${dirValidation.error}`))
+        return
+      }
+
+      // Use validated normalized path
+      const safeDirectory = dirValidation.normalized!
+
       const cmd = process.platform === 'win32' ? 'cmd' : 'sh'
       const cmdArgs =
         process.platform === 'win32'
           ? ['/c', 'aspire', ...args]
           : ['-lc', `aspire ${args.join(' ')}`]
 
-      const child = spawn(cmd, cmdArgs, { cwd: directory, stdio: 'pipe' })
+      const child = spawn(cmd, cmdArgs, { cwd: safeDirectory, stdio: 'pipe' })
       let output = ''
 
       child.stdout.on('data', (data) => {
@@ -89,6 +123,11 @@ ipcMain.handle('select-apphost-directory', async () => {
 })
 
 ipcMain.handle('run-aspire-do', async (_evt, directory: string, step: string) => {
+  // Validate step name to prevent command injection
+  const stepValidation = validateStepName(step)
+  if (!stepValidation.valid) {
+    throw new Error(`Invalid step name: ${stepValidation.error}`)
+  }
   return runAspireCommand(directory, ['do', step])
 })
 

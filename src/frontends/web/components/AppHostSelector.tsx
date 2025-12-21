@@ -11,7 +11,7 @@ export default function AppHostSelector({ onDirectorySelected }: AppHostSelector
     setLoading(true)
     try {
       // call preload IPC
-      // @ts-ignore
+      // @ts-expect-error
       const dir = await window.electronAPI.selectApphostDirectory()
       if (dir) onDirectorySelected(dir)
     } catch (err) {

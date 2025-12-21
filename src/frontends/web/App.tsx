@@ -22,7 +22,7 @@ export default function App() {
     setIsLoading(true)
     ;(async () => {
       try {
-        // @ts-ignore
+        // @ts-expect-error
         const result = await window.electronAPI?.getApphostDiagnostics?.(selectedDirectory)
         if (result?.output) {
           const { parseDiagnostics } = await import('@/core')

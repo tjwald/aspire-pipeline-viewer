@@ -5,11 +5,11 @@ export interface RunResult {
 }
 
 export const selectApphostDirectory = async (): Promise<string | null> => {
-  // @ts-ignore
+  // @ts-expect-error
   return window.electronAPI?.selectApphostDirectory?.()
 }
 
 export const runAspireDo = async (directory: string, step: string): Promise<RunResult> => {
-  // @ts-ignore
+  // @ts-expect-error
   return window.electronAPI?.runAspireDo?.(directory, step)
 }

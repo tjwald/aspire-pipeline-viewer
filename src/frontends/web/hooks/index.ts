@@ -14,7 +14,7 @@ export function usePipelineData(directory: string | null) {
 
     setLoading(true)
     try {
-      // @ts-ignore
+      // @ts-expect-error
       const result = await window.electronAPI?.getApphostDiagnostics?.(directory)
       if (result?.output) {
         const { parseDiagnostics } = await import('@/core')
@@ -54,7 +54,7 @@ export function useStepExecution(directory: string | null) {
       setExecuting(true)
       setOutput('')
       try {
-        // @ts-ignore
+        // @ts-expect-error
         const result = await window.electronAPI?.runAspireDo?.(directory, stepId)
         if (result?.code === 0) {
           showToast('Step executed successfully', 'success', 3000)

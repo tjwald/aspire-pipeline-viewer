@@ -2,7 +2,7 @@
 import fs from 'fs'
 import path from 'path'
 import readline from 'readline'
-import { DiagnosticsService } from '@aspire/core'
+import { DiagnosticsService, validateDirectory, validateFilePath, validateStepName } from '@aspire/core'
 
 type CliOptions = {
   diagnosticsPath?: string
@@ -134,17 +134,25 @@ async function main() {
     let diagnosticsText: string
 
     if (diagnosticsPath) {
-      const resolvedPath = path.resolve(process.cwd(), diagnosticsPath)
+      // Validate diagnostics file path to prevent path traversal
+      const pathValidation = validateFilePath(diagnosticsPath, process.cwd())
+      if (!pathValidation.valid) {
+        throw new Error(`Invalid diagnostics path: ${pathValidation.error}`)
+      }
+
+      const resolvedPath = pathValidation.normalized!
       if (!fs.existsSync(resolvedPath)) {
         throw new Error(`Diagnostics file not found: ${resolvedPath}`)
       }
       diagnosticsText = fs.readFileSync(resolvedPath, 'utf-8')
     } else if (directory) {
-      // Run aspire do diagnostics on the directory to get diagnostics
-      const resolvedDir = path.resolve(process.cwd(), directory)
-      if (!fs.existsSync(resolvedDir)) {
-        throw new Error(`Directory not found: ${resolvedDir}`)
+      // Validate directory to prevent path traversal
+      const dirValidation = validateDirectory(path.resolve(process.cwd(), directory))
+      if (!dirValidation.valid) {
+        throw new Error(`Invalid directory: ${dirValidation.error}`)
       }
+
+      const resolvedDir = dirValidation.normalized!
 
       const { spawn } = await import('child_process')
       const result = await new Promise<string>((resolve, reject) => {
@@ -182,6 +190,14 @@ async function main() {
       diagnosticsText = result
     } else {
       throw new Error('No input source')
+    }
+
+    // Validate step name if provided
+    if (opts.step) {
+      const stepValidation = validateStepName(opts.step)
+      if (!stepValidation.valid) {
+        throw new Error(`Invalid step name: ${stepValidation.error}`)
+      }
     }
 
     // Use the core service to analyze diagnostics

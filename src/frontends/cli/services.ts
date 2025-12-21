@@ -4,7 +4,7 @@
 import fs from 'fs'
 import { spawn } from 'child_process'
 import type { DiagnosticsProvider, CommandRunner, Logger } from '@aspire/core'
-import { ConsoleLogger } from '@aspire/core'
+import { ConsoleLogger, validateDirectory, validateFilePath } from '@aspire/core'
 
 export class NodeDiagnosticsProvider implements DiagnosticsProvider {
   private diagnosticsPath: string
@@ -14,10 +14,17 @@ export class NodeDiagnosticsProvider implements DiagnosticsProvider {
   }
 
   async getDiagnostics(_directory: string): Promise<string> {
-    if (!fs.existsSync(this.diagnosticsPath)) {
-      throw new Error(`Diagnostics file not found: ${this.diagnosticsPath}`)
+    // Validate file path to prevent path traversal
+    const validation = validateFilePath(this.diagnosticsPath)
+    if (!validation.valid) {
+      throw new Error(`Invalid diagnostics path: ${validation.error}`)
     }
-    return fs.readFileSync(this.diagnosticsPath, 'utf-8')
+
+    const safePath = validation.normalized!
+    if (!fs.existsSync(safePath)) {
+      throw new Error(`Diagnostics file not found: ${safePath}`)
+    }
+    return fs.readFileSync(safePath, 'utf-8')
   }
 }
 
@@ -29,11 +36,19 @@ export class NodeCommandRunner implements CommandRunner {
   }
 
   async run(directory: string, command: string, args: string[]): Promise<{ code: number; output: string }> {
+    // Validate directory to prevent path traversal
+    const dirValidation = validateDirectory(directory)
+    if (!dirValidation.valid) {
+      throw new Error(`Invalid directory: ${dirValidation.error}`)
+    }
+
+    const safeDirectory = dirValidation.normalized!
+
     return new Promise((resolve, reject) => {
       const cmd = process.platform === 'win32' ? 'cmd' : 'sh'
       const cmdArgs = process.platform === 'win32' ? ['/c', command, ...args] : ['-lc', `${command} ${args.join(' ')}`]
 
-      const child = spawn(cmd, cmdArgs, { cwd: directory, stdio: 'pipe' })
+      const child = spawn(cmd, cmdArgs, { cwd: safeDirectory, stdio: 'pipe' })
       let output = ''
 
       child.stdout?.on('data', (data) => {

@@ -10,5 +10,9 @@
   "dependencies": {
     "electron": "^39.2.7",
     "@aspire/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "typescript": "^5.9.3"
   }
 }

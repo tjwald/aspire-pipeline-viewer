@@ -8,7 +8,7 @@ import { createMockServiceContainer } from './mockAdapter'
 
 export function createWebServiceContainer(): ServiceContainer {
   // Check if running in Electron (has electronAPI in window)
-  // @ts-ignore
+  // @ts-expect-error
   if (typeof window !== 'undefined' && window.electronAPI) {
     return createElectronServiceContainer()
   }

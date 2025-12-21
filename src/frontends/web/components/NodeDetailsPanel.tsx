@@ -40,7 +40,7 @@ export default function NodeDetailsPanel({ nodeId, graph, directory, onClose, on
     setIsExecuting(true)
     onExecute()
     try {
-      // @ts-ignore
+      // @ts-expect-error
       const result = await window.electronAPI?.runAspireDo?.(directory, step.id)
       if (result?.code === 0) {
         console.log('Step executed successfully')
