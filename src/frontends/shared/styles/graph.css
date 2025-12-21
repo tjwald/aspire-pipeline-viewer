@@ -14,6 +14,8 @@
   position: relative;
   background: #1e1e1e;
   cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .graph-container:active {

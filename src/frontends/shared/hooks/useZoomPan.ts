@@ -20,6 +20,7 @@ export function useZoomPan() {
 
   const onMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (e.button !== 0) return
+    e.preventDefault() // Prevent text selection
     const target = e.currentTarget
     isDragging.current = true
     dragStart.current = { x: e.clientX, y: e.clientY }
