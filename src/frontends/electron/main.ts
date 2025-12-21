@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import path from 'path'
+import fs from 'fs'
 import { spawn } from 'child_process'
 import { validateDirectory, validateStepName } from '@aspire/core'
 
@@ -116,6 +117,12 @@ function runAspireCommand(
 
 // IPC handlers
 ipcMain.handle('select-apphost-directory', async () => {
+  // In test mode with fixture, return the fixture directory
+  const testFixture = process.env.ASPIRE_TEST_FIXTURE
+  if (testFixture) {
+    return path.dirname(testFixture)
+  }
+  
   const result = await dialog.showOpenDialog(mainWindow!, {
     properties: ['openDirectory'],
     title: 'Select AppHost Directory',
@@ -134,5 +141,12 @@ ipcMain.handle('run-aspire-do', async (_evt, directory: string, step: string) =>
 })
 
 ipcMain.handle('get-apphost-diagnostics', async (_evt, directory: string) => {
+  // In test mode with fixture, return fixture content instead of running aspire
+  const testFixture = process.env.ASPIRE_TEST_FIXTURE
+  if (testFixture && fs.existsSync(testFixture)) {
+    const output = fs.readFileSync(testFixture, 'utf-8')
+    return { code: 0, output }
+  }
+  
   return runAspireCommand(directory, ['do', 'diagnostics'])
 })

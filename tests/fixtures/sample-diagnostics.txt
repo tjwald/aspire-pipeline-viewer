@@ -1,0 +1,42 @@
+PIPELINE DEPENDENCY GRAPH DIAGNOSTICS
+
+DETAILED STEP ANALYSIS
+
+Step: build-prereq
+    Description: Install prerequisites and restore packages
+    Dependencies: none
+    Resource: prerequisites (ExecutableContainerResource)
+    Tags: build, setup
+
+Step: build-app
+    Description: Build the main application
+    Dependencies: ✓ build-prereq
+    Resource: app (ExecutableContainerResource)
+    Tags: build
+
+Step: build-frontend
+    Description: Build frontend assets with Vite
+    Dependencies: ✓ build-prereq
+    Resource: frontend (ExecutableContainerResource)
+    Tags: build, web
+
+Step: test-unit
+    Description: Run unit test suite
+    Dependencies: ✓ build-app
+    Resource: tests (ExecutableContainerResource)
+    Tags: test
+
+Step: test-integration
+    Description: Run integration tests
+    Dependencies: ✓ build-app, ✓ build-frontend
+    Resource: tests (ExecutableContainerResource)
+    Tags: test
+
+Step: deploy
+    Description: Deploy to production environment
+    Dependencies: ✓ test-unit, ✓ test-integration
+    Resource: deployer (ExecutableContainerResource)
+    Tags: deploy, production
+
+POTENTIAL ISSUES:
+None detected

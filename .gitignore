@@ -19,4 +19,9 @@ yarn-error.log*
 *.sln
 *.swp
 coverage/
-dist-electron/
+
+# Playwright
+playwright-report/
+test-results/
+playwright/.cache/
+blob-report/
