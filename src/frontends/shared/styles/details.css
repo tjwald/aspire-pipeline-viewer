@@ -1,0 +1,79 @@
+/* Details panel */
+.details-panel {
+  width: 300px;
+  background: #252526;
+  border-left: 1px solid #3e3e42;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.details-header {
+  padding: 12px;
+  background: #2d2d2d;
+  border-bottom: 1px solid #3e3e42;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.details-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.detail-section {
+  margin-bottom: 16px;
+}
+
+.detail-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #858585;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.detail-value {
+  font-size: 12px;
+  padding: 8px;
+  background: #3c3c3c;
+  border-radius: 2px;
+  word-break: break-word;
+}
+
+.detail-list {
+  list-style: none;
+}
+
+.detail-list-item {
+  font-size: 12px;
+  padding: 4px 0;
+  color: #ce9178;
+}
+
+.detail-list-item::before {
+  content: "• ";
+  color: #858585;
+  margin-right: 4px;
+}
+
+.tag-pill {
+  background: #094771;
+  padding: 3px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+}
+
+.no-selection {
+  color: #858585;
+  font-style: italic;
+  text-align: center;
+  padding: 40px 12px;
+}
+
+@media (max-width: 1200px) {
+  .details-panel {
+    width: 250px;
+  }
+}

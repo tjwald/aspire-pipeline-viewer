@@ -1,10 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import path from 'path'
 import { spawn } from 'child_process'
-import { fileURLToPath } from 'url'
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
 
 let mainWindow: BrowserWindow | null = null
 
@@ -13,7 +9,7 @@ function createWindow() {
     width: 1200,
     height: 800,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
     },
@@ -22,10 +18,10 @@ function createWindow() {
   const isDev = !app.isPackaged
 
   if (isDev) {
-    mainWindow.loadURL('http://localhost:5173')
+    mainWindow.loadURL('http://localhost:5174')
     mainWindow.webContents.openDevTools()
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
+    mainWindow.loadFile(path.join(__dirname, 'renderer/index.html'))
   }
 
   mainWindow.on('closed', () => {
@@ -81,7 +77,7 @@ ipcMain.handle('get-apphost-diagnostics', async (_evt, directory: string) => {
   return new Promise((resolve, reject) => {
     try {
       const cmd = process.platform === 'win32' ? 'cmd' : 'sh'
-      const args = process.platform === 'win32' ? ['/c', 'aspire', 'do', 'diagnostic'] : ['-lc', `aspire do diagnostic`]
+      const args = process.platform === 'win32' ? ['/c', 'aspire', 'do', 'diagnostics'] : ['-lc', `aspire do diagnostics`]
       const child = spawn(cmd, args, { cwd: directory, stdio: 'pipe' })
       let output = ''
       child.stdout.on('data', (data) => {

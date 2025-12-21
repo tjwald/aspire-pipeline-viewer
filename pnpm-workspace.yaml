@@ -1,3 +1,5 @@
 packages:
-  - 'src/core'
-  - 'src/frontends/*'
+  - src/core
+  - src/frontends/*
+
+onlyBuiltDependencies: '[]'

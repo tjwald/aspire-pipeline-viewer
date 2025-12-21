@@ -14,13 +14,13 @@ export default defineConfig({
     strictPort: true,
   },
   build: {
-    outDir: path.resolve(__dirname, '../../dist-electron/renderer'),
+    outDir: path.resolve(__dirname, '../../../dist-electron/renderer'),
     emptyOutDir: true,
   },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'renderer'),
-      '@core': path.resolve(__dirname, '../..', 'core'),
+      '@aspire/core': path.resolve(__dirname, '../../core/index.ts'),
     },
   },
 })
