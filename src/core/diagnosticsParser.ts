@@ -39,8 +39,8 @@ export function parseDiagnostics(text: string): PipelineGraph {
         .join(' ')
     }
 
-    // Extract dependencies
-    const depsMatch = blockText.match(/^\s*Dependencies:\s*(.+?)(?=\n\s*(?:Resource|Tags|$))/m)
+    // Extract dependencies - capture until Resource, Tags, or end of block
+    const depsMatch = blockText.match(/^\s*Dependencies:\s*(.+?)(?=\n\s*Resource|\n\s*Tags|$)/ms)
     if (depsMatch) {
       const depsPart = depsMatch[1].trim()
       if (depsPart.toLowerCase() !== 'none') {
