@@ -5,6 +5,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@aspire/core': path.resolve(__dirname, './src/core'),
     },
   },
   test: {

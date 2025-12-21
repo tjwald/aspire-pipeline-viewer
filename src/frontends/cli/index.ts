@@ -2,7 +2,7 @@
 import fs from 'fs'
 import path from 'path'
 import readline from 'readline'
-import { parseDiagnostics } from '@aspire/core'
+import { DiagnosticsService } from '@aspire/core'
 
 type CliOptions = {
   diagnosticsPath?: string
@@ -102,75 +102,6 @@ async function interactiveMode(rl: readline.Interface): Promise<{ diagnosticsPat
   return { diagnosticsPath }
 }
 
-function formatGraph(graph: any, format: 'json' | 'text', stepFilter?: string): string {
-  let filteredGraph = graph
-  
-  // If a step is specified, filter to show that step and its dependency chain
-  if (stepFilter) {
-    const requestedStep = graph.steps.find((s: any) => s.id === stepFilter)
-    if (!requestedStep) {
-      throw new Error(`Step not found: ${stepFilter}`)
-    }
-    
-    // Build dependency chain
-    const includedSteps = new Set<string>()
-    const toVisit = [stepFilter]
-    
-    while (toVisit.length > 0) {
-      const current = toVisit.shift()!
-      if (includedSteps.has(current)) continue
-      includedSteps.add(current)
-      
-      const step = graph.steps.find((s: any) => s.id === current)
-      if (step?.dependencies) {
-        toVisit.push(...step.dependencies)
-      }
-    }
-    
-    // Filter steps and edges
-    const filteredSteps = graph.steps.filter((s: any) => includedSteps.has(s.id))
-    const filteredEdges = graph.edges.filter((e: any) => includedSteps.has(e.source) && includedSteps.has(e.target))
-    
-    filteredGraph = {
-      ...graph,
-      steps: filteredSteps,
-      edges: filteredEdges,
-    }
-  }
-
-  if (format === 'json') {
-    return JSON.stringify(filteredGraph, null, 2)
-  }
-
-  // Text format
-  let output = `\n📊 Pipeline: ${filteredGraph.name}\n`
-  output += `ID: ${filteredGraph.id}\n`
-  output += `Steps: ${filteredGraph.steps.length}\n`
-  output += `Edges: ${filteredGraph.edges.length}\n\n`
-
-  output += 'Steps:\n'
-  for (const step of filteredGraph.steps) {
-    output += `  • ${step.name} (${step.id})\n`
-    if (step.description) {
-      output += `    Description: ${step.description}\n`
-    }
-    if (step.resource) {
-      output += `    Resource: ${step.resource}\n`
-    }
-    if (step.dependencies && step.dependencies.length > 0) {
-      output += `    Dependencies: ${step.dependencies.join(', ')}\n`
-    }
-    if (step.tags && step.tags.length > 0) {
-      output += `    Tags: ${step.tags.join(', ')}\n`
-    }
-    if (step.status !== undefined) {
-      output += `    Status: ${step.status}\n`
-    }
-  }
-
-  return output
-}
-
 async function main() {
   const argv = process.argv.slice(2)
   const opts = parseArgs(argv)
@@ -253,9 +184,8 @@ async function main() {
       throw new Error('No input source')
     }
 
-    const graph = parseDiagnostics(diagnosticsText)
-
-    const output = formatGraph(graph, opts.outputFormat, opts.step)
+    // Use the core service to analyze diagnostics
+    const output = DiagnosticsService.analyze(diagnosticsText, opts.outputFormat, opts.step)
     console.log(output)
 
     // Exit with success
@@ -271,4 +201,3 @@ main().catch((err) => {
   console.error('❌ Fatal error:', err)
   process.exit(1)
 })
-

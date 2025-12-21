@@ -1,4 +1,7 @@
 export type { PipelineGraph, PipelineStep, PipelineEdge, ExecutionStatus } from './types/pipeline'
 export { parseDiagnostics } from './diagnosticsParser'
+export { DiagnosticsFormatter } from './diagnosticsFormatter'
+export type { OutputFormat } from './diagnosticsFormatter'
+export { DiagnosticsService } from './diagnosticsService'
 export type { DiagnosticsProvider, CommandRunner, DirectoryChooser, Logger, ServiceContainer } from './services'
 export { ConsoleLogger } from './services'
