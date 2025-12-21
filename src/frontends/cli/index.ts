@@ -125,7 +125,12 @@ function formatGraph(graph: any, format: 'json' | 'text'): string {
     if (step.dependencies && step.dependencies.length > 0) {
       output += `    Dependencies: ${step.dependencies.join(', ')}\n`
     }
-    output += `    Status: ${step.status}\n`
+    if (step.tags && step.tags.length > 0) {
+      output += `    Tags: ${step.tags.join(', ')}\n`
+    }
+    if (step.status !== undefined) {
+      output += `    Status: ${step.status}\n`
+    }
   }
 
   return output

@@ -20,7 +20,8 @@
     "preview": "vite preview",
     "lint": "eslint \"src/**/*.{ts,tsx}\" --max-warnings=0",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,md}\"",
-    "test": "vitest"
+    "test": "vitest",
+    "cli": "node src/frontends/cli/dist/index.js"
   },
   "dependencies": {
     "electron": "^39.2.7",
