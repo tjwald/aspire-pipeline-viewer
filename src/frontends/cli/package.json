@@ -2,7 +2,6 @@
   "name": "@aspire/cli",
   "version": "0.0.0",
   "private": true,
-  "type": "module",
   "bin": {
     "aspire-cli": "dist/index.js"
   },

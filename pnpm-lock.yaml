@@ -67,14 +67,6 @@ importers:
         specifier: ^8.0.5
         version: 8.0.5
 
-  packages/cli:
-    dependencies:
-      '@aspire/core':
-        specifier: workspace:*
-        version: link:../core
-
-  packages/core: {}
-
   src/core: {}
 
   src/frontends/cli:

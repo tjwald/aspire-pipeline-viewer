@@ -1,0 +1,36 @@
+PIPELINE DEPENDENCY GRAPH DIAGNOSTICS
+
+DETAILED STEP ANALYSIS
+
+Step: build-app
+    Description: Build the main application
+    Dependencies: ✓ build-prereq
+    Resource: app (ExecutableContainerResource)
+    Tags: build-compute
+
+Step: build-frontend
+    Description: Build frontend assets
+    Dependencies: ✓ build-prereq
+    Resource: frontend (ExecutableContainerResource)
+    Tags: build-compute
+
+Step: build-prereq
+    Description: Install prerequisites
+    Dependencies: 
+    Resource: prerequisites (ExecutableContainerResource)
+    Tags: build-compute
+
+Step: test
+    Description: Run test suite
+    Dependencies: ✓ build-app, ✓ build-frontend
+    Resource: tests (ExecutableContainerResource)
+    Tags: test
+
+Step: deploy
+    Description: Deploy to production
+    Dependencies: ✓ test
+    Resource: deployer (ExecutableContainerResource)
+    Tags: deploy
+
+POTENTIAL ISSUES:
+None detected

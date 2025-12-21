@@ -3,8 +3,8 @@
  */
 import fs from 'fs'
 import { spawn } from 'child_process'
-import type { DiagnosticsProvider, CommandRunner, Logger } from '@/core'
-import { ConsoleLogger } from '@/core'
+import type { DiagnosticsProvider, CommandRunner, Logger } from '@aspire/core'
+import { ConsoleLogger } from '@aspire/core'
 
 export class NodeDiagnosticsProvider implements DiagnosticsProvider {
   private diagnosticsPath: string

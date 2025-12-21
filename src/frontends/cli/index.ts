@@ -2,7 +2,7 @@
 import fs from 'fs'
 import path from 'path'
 import readline from 'readline'
-import { parseDiagnostics } from '@/core'
+import { parseDiagnostics } from '@aspire/core'
 
 type CliOptions = {
   diagnosticsPath?: string
@@ -169,13 +169,46 @@ async function main() {
       }
       diagnosticsText = fs.readFileSync(resolvedPath, 'utf-8')
     } else if (directory) {
-      // For now, read from file in directory if exists, otherwise try running aspire
-      const diagPath = path.join(directory, 'diagnostics.txt')
-      if (fs.existsSync(diagPath)) {
-        diagnosticsText = fs.readFileSync(diagPath, 'utf-8')
-      } else {
-        throw new Error(`Diagnostics file not found in ${directory}`)
+      // Run aspire do diagnostics on the directory to get diagnostics
+      const resolvedDir = path.resolve(process.cwd(), directory)
+      if (!fs.existsSync(resolvedDir)) {
+        throw new Error(`Directory not found: ${resolvedDir}`)
       }
+
+      const { spawn } = await import('child_process')
+      const result = await new Promise<string>((resolve, reject) => {
+        const aspireCmd = process.platform === 'win32' ? 'aspire.exe' : 'aspire'
+        const proc = spawn(aspireCmd, ['do', 'diagnostics'], {
+          cwd: resolvedDir,
+          stdio: ['pipe', 'pipe', 'pipe'],
+        })
+
+        let output = ''
+        let errorOutput = ''
+
+        proc.stdout?.on('data', (data) => {
+          output += data.toString()
+        })
+
+        proc.stderr?.on('data', (data) => {
+          errorOutput += data.toString()
+        })
+
+        proc.on('close', (code) => {
+          if (code !== 0 && !output && !errorOutput) {
+            reject(new Error(`aspire do diagnostics failed with code ${code}`))
+          } else {
+            // aspire outputs to both stdout and stderr, so we use whichever has content
+            resolve(output || errorOutput)
+          }
+        })
+
+        proc.on('error', (err) => {
+          reject(new Error(`Failed to run aspire: ${err.message}`))
+        })
+      })
+
+      diagnosticsText = result
     } else {
       throw new Error('No input source')
     }
