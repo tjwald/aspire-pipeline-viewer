@@ -6,10 +6,11 @@ import ExecutionPanel from './components/ExecutionPanel'
 import Toast from './components/Toast'
 import { useToast } from './hooks'
 import { TIMEOUTS } from './constants'
+import type { PipelineGraph } from '@/core'
 
 export default function App() {
   const [selectedDirectory, setSelectedDirectory] = useState<string | null>(null)
-  const [pipelineGraph, setPipelineGraph] = useState(null)
+  const [pipelineGraph, setPipelineGraph] = useState<PipelineGraph | null>(null)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [showExecutionPanel, setShowExecutionPanel] = useState(false)
   const [isLoading, setIsLoading] = useState(false)

@@ -18,9 +18,11 @@
     "noUnusedParameters": false,
     "baseUrl": ".",
     "paths": {
+      "@aspire/core": ["src/core/index.ts"],
+      "@aspire/core/*": ["src/core/*"],
       "@/core": ["src/core"],
       "@/frontends/web": ["src/frontends/web"]
     }
   },
-  "include": ["src"]
+  "include": ["src", "tests"]
 }

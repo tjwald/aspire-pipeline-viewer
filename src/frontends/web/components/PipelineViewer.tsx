@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react'
 import ReactFlow, { Node, Background, Controls, useNodesState, useEdgesState, MarkerType } from 'reactflow'
 import 'reactflow/dist/style.css'
-import type { PipelineGraph, PipelineStep, ExecutionStatus } from '@/core'
-import { EXECUTION_STATUS_COLORS } from '../theme'
+import { ExecutionStatus, type PipelineGraph, type PipelineStep } from '@/core'
+import { EXECUTION_STATUS_COLORS } from '../../shared/theme'
 
 interface Props {
   graph: PipelineGraph | null
@@ -55,6 +55,8 @@ export default function PipelineViewer({ graph, selectedNodeId, onNodeSelected }
         const x = level * levelWidth
         const y = index * (nodeHeight + 30)
         const isSelected = selectedNodeId === step.id
+        const status: ExecutionStatus = step.status ?? ExecutionStatus.Pending
+        const statusColors = EXECUTION_STATUS_COLORS[status]
 
         nodeList.push({
           id: step.id,
@@ -68,8 +70,8 @@ export default function PipelineViewer({ graph, selectedNodeId, onNodeSelected }
           },
           position: { x, y },
           style: {
-            background: isSelected ? '#1f2937' : EXECUTION_STATUS_COLORS[step.status as ExecutionStatus],
-            color: isSelected || step.status === 'Success' || step.status === 'Failed' ? '#fff' : '#000',
+            background: isSelected ? '#1f2937' : statusColors.bg,
+            color: isSelected ? '#fff' : statusColors.text,
             border: isSelected ? '3px solid #1f2937' : '1px solid #ddd',
             borderRadius: '8px',
             padding: '8px',

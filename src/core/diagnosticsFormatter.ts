@@ -1,4 +1,4 @@
-import type { PipelineGraph } from './types'
+import type { PipelineEdge, PipelineGraph, PipelineStep } from './types/pipeline'
 
 export type OutputFormat = 'json' | 'text'
 
@@ -26,7 +26,7 @@ export class DiagnosticsFormatter {
       return graph
     }
 
-    const requestedStep = graph.steps.find((s) => s.id === stepId)
+    const requestedStep = graph.steps.find((step: PipelineStep) => step.id === stepId)
     if (!requestedStep) {
       throw new Error(`Step not found: ${stepId}`)
     }
@@ -40,15 +40,17 @@ export class DiagnosticsFormatter {
       if (includedSteps.has(current)) continue
       includedSteps.add(current)
 
-      const step = graph.steps.find((s) => s.id === current)
+      const step = graph.steps.find((candidate: PipelineStep) => candidate.id === current)
       if (step?.dependencies) {
         toVisit.push(...step.dependencies)
       }
     }
 
     // Filter steps and edges
-    const filteredSteps = graph.steps.filter((s) => includedSteps.has(s.id))
-    const filteredEdges = graph.edges.filter((e) => includedSteps.has(e.source) && includedSteps.has(e.target))
+    const filteredSteps = graph.steps.filter((step: PipelineStep) => includedSteps.has(step.id))
+    const filteredEdges = graph.edges.filter(
+      (edge: PipelineEdge) => includedSteps.has(edge.source) && includedSteps.has(edge.target),
+    )
 
     return {
       ...graph,

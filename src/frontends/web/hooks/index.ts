@@ -1,44 +1,11 @@
-/**
- * Custom hooks for common patterns and state management
- */
-
 import { useState, useCallback } from 'react'
-import type { ToastType } from '../components/Toast'
+import type { PipelineGraph } from '@/core'
+import { useToast } from '../../shared/hooks/useToast'
 
-interface ToastState {
-  id: string
-  message: string
-  type: ToastType
-  duration?: number
-}
+export { useToast }
 
-/**
- * Hook for managing toast notifications
- */
-export function useToast() {
-  const [toast, setToast] = useState<ToastState | null>(null)
-
-  const showToast = useCallback((message: string, type: ToastType = 'info', duration?: number) => {
-    setToast({
-      id: Date.now().toString(),
-      message,
-      type,
-      duration,
-    })
-  }, [])
-
-  const closeToast = useCallback(() => {
-    setToast(null)
-  }, [])
-
-  return { toast, showToast, closeToast }
-}
-
-/**
- * Hook for pipeline data loading with error handling
- */
 export function usePipelineData(directory: string | null) {
-  const [graph, setGraph] = useState(null)
+  const [graph, setGraph] = useState<PipelineGraph | null>(null)
   const [loading, setLoading] = useState(false)
   const { showToast } = useToast()
 

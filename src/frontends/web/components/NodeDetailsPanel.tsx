@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
-import type { PipelineGraph } from '@/core'
-import { STATUS_TEXT_COLORS } from '../theme'
+import { ExecutionStatus, type PipelineGraph } from '@/core'
+import { STATUS_TEXT_COLORS } from '../../shared/theme'
 
 interface Props {
   nodeId: string
@@ -13,6 +13,7 @@ interface Props {
 export default function NodeDetailsPanel({ nodeId, graph, directory, onClose, onExecute }: Props) {
   const [isExecuting, setIsExecuting] = useState(false)
   const step = graph?.steps.find((s) => s.id === nodeId)
+  const status: ExecutionStatus = step?.status ?? ExecutionStatus.Pending
 
   if (!step) {
     return (
@@ -60,7 +61,7 @@ export default function NodeDetailsPanel({ nodeId, graph, directory, onClose, on
       <div className="flex justify-between items-start mb-4">
         <div className="flex-1">
           <h3 className="text-lg font-semibold text-gray-900">{step.name}</h3>
-          <div className={`text-xs font-medium mt-1 ${STATUS_TEXT_COLORS[step.status]}`}>{step.status}</div>
+          <div className={`text-xs font-medium mt-1 ${STATUS_TEXT_COLORS[status]}`}>{status}</div>
         </div>
         <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-lg">✕</button>
       </div>

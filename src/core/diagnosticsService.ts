@@ -1,6 +1,6 @@
 import { parseDiagnostics } from './diagnosticsParser'
 import { DiagnosticsFormatter, type OutputFormat } from './diagnosticsFormatter'
-import type { PipelineGraph } from './types'
+import type { PipelineGraph } from './types/pipeline'
 
 export class DiagnosticsService {
   /**

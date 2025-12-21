@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import type { PipelineGraph } from '@/core'
+import { ExecutionStatus, type PipelineGraph, type PipelineStep } from '@/core'
 
 describe('PipelineViewer', () => {
   it('should render DAG nodes with topological layout', () => {
@@ -14,7 +14,7 @@ describe('PipelineViewer', () => {
           dependencies: [],
           resource: 'builder',
           tags: ['build'],
-          status: 'Success',
+          status: ExecutionStatus.Success,
         },
         {
           id: 'test',
@@ -23,7 +23,7 @@ describe('PipelineViewer', () => {
           dependencies: ['build'],
           resource: 'tester',
           tags: ['test'],
-          status: 'Success',
+          status: ExecutionStatus.Success,
         },
         {
           id: 'deploy',
@@ -32,7 +32,7 @@ describe('PipelineViewer', () => {
           dependencies: ['test'],
           resource: 'deployer',
           tags: ['deploy'],
-          status: 'Pending',
+          status: ExecutionStatus.Pending,
         },
       ],
       edges: [
@@ -46,13 +46,13 @@ describe('PipelineViewer', () => {
     expect(graph.edges).toHaveLength(2)
 
     // Verify dependency resolution
-    const buildStep = graph.steps.find((s) => s.id === 'build')
+    const buildStep = graph.steps.find((s: PipelineStep) => s.id === 'build')
     expect(buildStep?.dependencies).toHaveLength(0)
 
-    const testStep = graph.steps.find((s) => s.id === 'test')
+    const testStep = graph.steps.find((s: PipelineStep) => s.id === 'test')
     expect(testStep?.dependencies).toContain('build')
 
-    const deployStep = graph.steps.find((s) => s.id === 'deploy')
+    const deployStep = graph.steps.find((s: PipelineStep) => s.id === 'deploy')
     expect(deployStep?.dependencies).toContain('test')
 
     // Verify topological levels can be calculated
@@ -64,21 +64,21 @@ describe('PipelineViewer', () => {
       if (visited.has(stepId)) return 0
 
       visited.add(stepId)
-      const step = graph.steps.find((s) => s.id === stepId)
+      const step = graph.steps.find((s: PipelineStep) => s.id === stepId)
       if (!step || !step.dependencies || step.dependencies.length === 0) {
         levels.set(stepId, 0)
         return 0
       }
 
       const maxDependencyLevel = Math.max(
-        ...step.dependencies.map((depId) => calculateLevel(depId))
+        ...step.dependencies.map((depId: string) => calculateLevel(depId))
       )
       const level = maxDependencyLevel + 1
       levels.set(stepId, level)
       return level
     }
 
-    graph.steps.forEach((step) => {
+    graph.steps.forEach((step: PipelineStep) => {
       calculateLevel(step.id)
     })
 

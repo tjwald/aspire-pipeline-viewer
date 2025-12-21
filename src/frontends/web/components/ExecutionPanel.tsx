@@ -13,7 +13,6 @@ export default function ExecutionPanel({ isVisible, onClose }: Props) {
     if (!isVisible) return
 
     // Set up IPC listeners for output and errors
-    // @ts-ignore
     const removeOutputListener = window.electronAPI?.onAspireOutput?.((data: string) => {
       setOutput((prev) => prev + data)
       if (outputRef.current) {
@@ -21,7 +20,6 @@ export default function ExecutionPanel({ isVisible, onClose }: Props) {
       }
     })
 
-    // @ts-ignore
     const removeErrorListener = window.electronAPI?.onAspireError?.((data: string) => {
       setOutput((prev) => prev + `[ERROR] ${data}`)
       if (outputRef.current) {
@@ -30,8 +28,8 @@ export default function ExecutionPanel({ isVisible, onClose }: Props) {
     })
 
     return () => {
-      removeOutputListener?.()
-      removeErrorListener?.()
+      if (typeof removeOutputListener === 'function') removeOutputListener()
+      if (typeof removeErrorListener === 'function') removeErrorListener()
     }
   }, [isVisible])
 

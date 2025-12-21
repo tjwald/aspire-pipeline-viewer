@@ -1,4 +1,5 @@
-export type { PipelineGraph, PipelineStep, PipelineEdge, ExecutionStatus } from './types/pipeline'
+export { ExecutionStatus } from './types/pipeline'
+export type { PipelineGraph, PipelineStep, PipelineEdge } from './types/pipeline'
 export { parseDiagnostics } from './diagnosticsParser'
 export { DiagnosticsFormatter } from './diagnosticsFormatter'
 export type { OutputFormat } from './diagnosticsFormatter'

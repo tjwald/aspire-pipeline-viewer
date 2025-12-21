@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react'
-import { TOAST_STYLES } from '../theme'
+import { TOAST_STYLES } from '../../shared/theme'
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning'
 
