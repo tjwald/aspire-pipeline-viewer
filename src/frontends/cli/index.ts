@@ -102,19 +102,54 @@ async function interactiveMode(rl: readline.Interface): Promise<{ diagnosticsPat
   return { diagnosticsPath }
 }
 
-function formatGraph(graph: any, format: 'json' | 'text'): string {
+function formatGraph(graph: any, format: 'json' | 'text', stepFilter?: string): string {
+  let filteredGraph = graph
+  
+  // If a step is specified, filter to show that step and its dependency chain
+  if (stepFilter) {
+    const requestedStep = graph.steps.find((s: any) => s.id === stepFilter)
+    if (!requestedStep) {
+      throw new Error(`Step not found: ${stepFilter}`)
+    }
+    
+    // Build dependency chain
+    const includedSteps = new Set<string>()
+    const toVisit = [stepFilter]
+    
+    while (toVisit.length > 0) {
+      const current = toVisit.shift()!
+      if (includedSteps.has(current)) continue
+      includedSteps.add(current)
+      
+      const step = graph.steps.find((s: any) => s.id === current)
+      if (step?.dependencies) {
+        toVisit.push(...step.dependencies)
+      }
+    }
+    
+    // Filter steps and edges
+    const filteredSteps = graph.steps.filter((s: any) => includedSteps.has(s.id))
+    const filteredEdges = graph.edges.filter((e: any) => includedSteps.has(e.source) && includedSteps.has(e.target))
+    
+    filteredGraph = {
+      ...graph,
+      steps: filteredSteps,
+      edges: filteredEdges,
+    }
+  }
+
   if (format === 'json') {
-    return JSON.stringify(graph, null, 2)
+    return JSON.stringify(filteredGraph, null, 2)
   }
 
   // Text format
-  let output = `\n📊 Pipeline: ${graph.name}\n`
-  output += `ID: ${graph.id}\n`
-  output += `Steps: ${graph.steps.length}\n`
-  output += `Edges: ${graph.edges.length}\n\n`
+  let output = `\n📊 Pipeline: ${filteredGraph.name}\n`
+  output += `ID: ${filteredGraph.id}\n`
+  output += `Steps: ${filteredGraph.steps.length}\n`
+  output += `Edges: ${filteredGraph.edges.length}\n\n`
 
   output += 'Steps:\n'
-  for (const step of graph.steps) {
+  for (const step of filteredGraph.steps) {
     output += `  • ${step.name} (${step.id})\n`
     if (step.description) {
       output += `    Description: ${step.description}\n`
@@ -220,7 +255,7 @@ async function main() {
 
     const graph = parseDiagnostics(diagnosticsText)
 
-    const output = formatGraph(graph, opts.outputFormat)
+    const output = formatGraph(graph, opts.outputFormat, opts.step)
     console.log(output)
 
     // Exit with success
