@@ -5,15 +5,15 @@
 
 A desktop application and CLI for visualizing .NET Aspire application pipelines as interactive directed acyclic graphs (DAGs).
 
-![Pipeline Viewer Screenshot](docs/screenshot.png)
+![Pipeline Viewer Screenshot](docs/pipeline-viewer-screenshot.png)
 
 ## Features
 
 - 🎯 **Interactive DAG Visualization** - See your entire pipeline structure at a glance
 - 📊 **Resource-Based Layout** - Steps organized by resource with automatic column grouping  
 - 🔍 **Advanced Filtering** - Filter by step, resource, or tag
-- ⚡ **Step Execution** - Run individual pipeline steps with real-time output
-- 🎨 **Color-Coded Status** - Visual feedback for execution states
+- ⚡ **Step Execution** - Run individual pipeline steps with real-time output (Coming soon!)
+- 🎨 **Color-Coded Status** - Visual feedback for execution states (Coming soon!)
 - 💻 **Cross-Platform** - Works on Windows, macOS, and Linux
 - 🖥️ **CLI Support** - Parse and format pipelines from the command line
 
@@ -36,7 +36,7 @@ pnpm dev:app
 ### Prerequisites
 
 - Node.js 24 or higher
-- pnpm 9 or higher
+- pnpm 10 or higher
 
 ### From Source
 
