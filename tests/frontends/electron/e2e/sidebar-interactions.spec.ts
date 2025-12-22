@@ -46,14 +46,14 @@ test.describe('Sidebar Interactions', () => {
     await expect(workspaceSection).toBeVisible()
   })
 
-  test('should have clickable Open Workspace button', async () => {
-    const button = window.locator('button:has-text("Open Workspace")')
+  test('should have clickable Select AppHost Directory button', async () => {
+    const button = window.locator('button:has-text("Select AppHost Directory")')
     await expect(button).toBeVisible()
     await expect(button).toBeEnabled()
   })
 
-  test('Open Workspace button should be focusable', async () => {
-    const button = window.locator('button:has-text("Open Workspace")')
+  test('Select AppHost Directory button should be focusable', async () => {
+    const button = window.locator('button:has-text("Select AppHost Directory")')
     await button.focus()
     
     // Check the button received focus

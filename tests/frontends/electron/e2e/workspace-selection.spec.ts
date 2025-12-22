@@ -43,8 +43,8 @@ test.describe('Workspace Selection', () => {
     await expect(workspaceSection).toContainText('Workspace')
   })
 
-  test('should show "Open Workspace" button', async () => {
-    const openButton = window.locator('button:has-text("Open Workspace")')
+  test('should show "Select AppHost Directory" button', async () => {
+    const openButton = window.locator('button:has-text("Select AppHost Directory")')
     await expect(openButton).toBeVisible()
   })
 

@@ -1,6 +1,6 @@
 # Aspire Pipeline Viewer CLI
 
-Command-line interface for parsing and analyzing .NET Aspire pipeline diagnostics.
+Command-line interface for parsing and analyzing Aspire pipeline diagnostics.
 
 ## Installation
 
@@ -52,7 +52,7 @@ pnpm cli -- --diagnostics ./diagnostics.txt --step deploy --text
 
 ### Parse from AppHost Directory
 
-Automatically run `aspire do diagnostics` and parse the output:
+Automatically run `aspire do diagnostics` in the given AppHost directory and parse the output:
 
 ```bash
 pnpm cli -- --directory ./src/MyApp.AppHost --text
@@ -135,26 +135,27 @@ Steps:
 
 ## Diagnostics File Format
 
-The CLI expects diagnostics output in the following format:
+The CLI accepts the raw output produced by `aspire do diagnostics` (the verbose "ugly" text). Example excerpt:
 
 ```
-Step: build
-  Description: Build the application
-  Resource: builder (ExecutableContainerResource)
-  Tags: build
+PIPELINE DEPENDENCY GRAPH DIAGNOSTICS
 
-Step: test
-  Description: Run unit tests
-  Dependencies: build
-  Resource: tester (ExecutableContainerResource)
-  Tags: test
+DETAILED STEP ANALYSIS
 
-Step: deploy
-  Description: Deploy to production
-  Dependencies: test
-  Resource: deployer (ExecutableContainerResource)
-  Tags: deploy
+Step: build-prereq
+    Description: Install prerequisites and restore packages
+    Dependencies: none
+    Resource: prerequisites (ExecutableContainerResource)
+    Tags: build, setup
+
+Step: build-app
+    Description: Build the main application
+    Dependencies: ✓ build-prereq
+    Resource: app (ExecutableContainerResource)
+    Tags: build
 ```
+
+The parser extracts `Step`, `Description`, `Dependencies`, `Resource`, and `Tags` from the raw text. Use `pnpm cli -- --diagnostics ./file` to parse and output JSON or text.
 
 ### Field Reference
 

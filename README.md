@@ -3,7 +3,7 @@
 [![CI](https://github.com/tjwald/AspirePipelineViewer/actions/workflows/ci.yml/badge.svg)](https://github.com/tjwald/AspirePipelineViewer/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A desktop application and CLI for visualizing .NET Aspire application pipelines as interactive directed acyclic graphs (DAGs).
+A desktop application and CLI for visualizing Aspire application pipelines as interactive directed acyclic graphs (DAGs).
 
 ![Pipeline Viewer Screenshot](docs/pipeline-viewer-screenshot.png)
 
@@ -113,12 +113,13 @@ AspirePipelineViewer/
 
 | Component | Technology |
 |-----------|------------|
-| Desktop | Electron 39 |
-| UI | React 19 |
-| Build | Vite 5 |
-| Language | TypeScript 5.7 |
+| Desktop | Electron 39.2.7 |
+| UI | React 19.2.3 |
+| Build | Vite 7.3.0 |
+| Language | TypeScript 5.9.3 |
 | Testing | Vitest |
-| Package Manager | pnpm |
+| Package Manager | pnpm 10.26.1 |
+| Node.js | v24.4.1 |
 
 ## Contributing
 
@@ -138,6 +139,4 @@ MIT - see [LICENSE](LICENSE) for details.
 
 ## Acknowledgments
 
-- [.NET Aspire](https://learn.microsoft.com/dotnet/aspire/) - The framework this tool visualizes
-- [Electron](https://www.electronjs.org/) - Cross-platform desktop framework
-- [React](https://react.dev/) - UI library
+- [Aspire](https://aspire.dev/) - The framework this tool visualizes

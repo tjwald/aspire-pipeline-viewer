@@ -59,8 +59,8 @@ test.afterAll(async () => {
 async function ensurePipelineLoaded() {
   if (pipelineLoaded) return
   
-  // Click "Open Workspace" button to trigger fixture loading
-  const openButton = window.locator('button:has-text("Open Workspace")')
+  // Click "Select AppHost Directory" button to trigger fixture loading
+  const openButton = window.locator('button:has-text("Select AppHost Directory")')
   await openButton.click()
   
   // Wait for pipeline to load (graph container should appear)
@@ -72,7 +72,7 @@ async function ensurePipelineLoaded() {
 }
 
 test.describe('Aspire Pipeline Loading', () => {
-  test('should load fixture diagnostics when clicking Open Workspace', async () => {
+  test('should load fixture diagnostics when clicking Select AppHost Directory', async () => {
     // This test loads the pipeline - must run first
     await ensurePipelineLoaded()
     

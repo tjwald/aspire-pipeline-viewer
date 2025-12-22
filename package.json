@@ -2,7 +2,7 @@
   "name": "aspire-pipeline-visualizer",
   "version": "0.1.0",
   "private": true,
-  "description": "Visual DAG viewer for .NET Aspire pipelines",
+  "description": "Visual DAG viewer for Aspire pipelines",
   "type": "module",
   "workspaces": [
     "src/core",
@@ -19,6 +19,7 @@
     "build:renderer": "vite build --config src/frontends/electron/vite.config.ts",
     "build:app": "pnpm --filter @aspire/core build && pnpm build:renderer && pnpm build:electron",
     "dev:app": "concurrently \"pnpm dev:renderer\" \"wait-on http://localhost:5174 && pnpm build:electron && electron .\"",
+    "clean": "rimraf node_modules dist dist-electron .pnpm-store playwright-report test-results || true",
     "lint": "eslint \"src/**/*.{ts,tsx}\" --max-warnings=0",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,md}\"",
     "test": "vitest",
@@ -55,6 +56,8 @@
     "typescript": "^5.9.3",
     "vite": "^7.3.0",
     "vitest": "^4.0.16",
-    "wait-on": "^9.0.3"
+    "wait-on": "^9.0.3",
+    "rimraf": "^5.0.0"
   }
+
 }
