@@ -41,7 +41,6 @@ function createWindow() {
   })
 
   const isDev = !app.isPackaged && process.env.NODE_ENV !== 'test'
-  const isTest = process.env.NODE_ENV === 'test'
 
   if (isDev) {
     mainWindow.loadURL('http://localhost:5174')
