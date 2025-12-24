@@ -52,11 +52,11 @@ pnpm dev:app
 There are three ways to load diagnostics into the app:
 
 1. Select AppHost Directory (recommended):
-	- Click **Select AppHost Directory** in the sidebar. This runs `aspire do diagnostics` in the selected AppHost directory and loads the output automatically.
+    - Click **Select AppHost Directory** in the sidebar. This runs `aspire do diagnostics` in the selected AppHost directory and loads the output automatically.
 2. Open diagnostics file from disk:
-	- Click **File > Open** or press `Ctrl+O` and choose a file containing raw `aspire do diagnostics` output (the ugly raw output format). The app will parse and visualize it.
+    - Click **File > Open** or press `Ctrl+O` and choose a file containing raw `aspire do diagnostics` output (the ugly raw output format). The app will parse and visualize it.
 3. Use the CLI to parse and view diagnostics programmatically:
-	- `pnpm cli --diagnostics ./pipeline.diagnostics --text` will parse and print formatted output.
+    - `pnpm cli --diagnostics ./pipeline.diagnostics --text` will parse and print formatted output.
 
 ### Generating Diagnostics Files
 
