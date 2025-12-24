@@ -13,13 +13,14 @@ export async function launchElectronApp(options?: {
   fixturePath?: string
   additionalEnv?: Record<string, string>
 }): Promise<ElectronApplication> {
+
   const mainPath = path.join(process.cwd(), 'dist-electron/main.cjs')
-  
   // Build args with CI sandbox handling
   const args = [mainPath]
   if (process.env.CI || process.env.GITHUB_ACTIONS) {
     args.unshift('--no-sandbox')
   }
+  console.log('Electron launch args:', args)
 
   // Build environment
   const env: Record<string, string> = {

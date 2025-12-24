@@ -56,13 +56,36 @@ jobs:
         
       - name: Build all packages
         run: pnpm build:all
-        
+
+      - name: Check Electron main.cjs exists
+        run: |
+          if [ ! -f dist-electron/main.cjs ]; then
+            echo "main.cjs missing!"
+            exit 1
+          fi
+          stat dist-electron/main.cjs
+
+      - name: Log time before Electron e2e
+        run: date
+
+      - name: Print environment variables
+        run: printenv
+
+      - name: Check for required dependencies
+        run: which xvfb-run || echo "xvfb-run not found"
+
+      - name: Print Playwright version
+        run: pnpm exec playwright --version
+
+      - name: Print Electron version
+        run: pnpm exec electron --version || echo "Electron not found"
+
       - name: Run CLI e2e tests
         run: pnpm run test:e2e-cli:only
-        
+
       - name: Run Electron e2e tests
         run: pnpm run test:e2e-electron:only
-        
+
       - name: Upload Playwright report
         if: failure()
         uses: actions/upload-artifact@v4
