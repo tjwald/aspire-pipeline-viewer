@@ -1,6 +1,6 @@
-import { test, expect, _electron as electron } from '@playwright/test'
-import path from 'path'
+import { test, expect } from '@playwright/test'
 import type { ElectronApplication, Page } from 'playwright'
+import { launchElectronApp } from '../launch-utils'
 
 /**
  * E2E tests for sidebar interactions including:
@@ -13,15 +13,7 @@ let electronApp: ElectronApplication
 let window: Page
 
 test.beforeAll(async () => {
-  const mainPath = path.join(process.cwd(), 'dist-electron/main.cjs')
-  
-  electronApp = await electron.launch({
-    args: [mainPath],
-    env: {
-      ...process.env,
-      NODE_ENV: 'test',
-    },
-  })
+  electronApp = await launchElectronApp()
 
   window = await electronApp.firstWindow()
   await window.waitForLoadState('domcontentloaded')
@@ -46,14 +38,14 @@ test.describe('Sidebar Interactions', () => {
     await expect(workspaceSection).toBeVisible()
   })
 
-  test('should have clickable Open Workspace button', async () => {
-    const button = window.locator('button:has-text("Open Workspace")')
+  test('should have clickable Select AppHost Directory button', async () => {
+    const button = window.locator('button:has-text("Select AppHost Directory")')
     await expect(button).toBeVisible()
     await expect(button).toBeEnabled()
   })
 
-  test('Open Workspace button should be focusable', async () => {
-    const button = window.locator('button:has-text("Open Workspace")')
+  test('Select AppHost Directory button should be focusable', async () => {
+    const button = window.locator('button:has-text("Select AppHost Directory")')
     await button.focus()
     
     // Check the button received focus

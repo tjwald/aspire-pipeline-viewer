@@ -53,7 +53,7 @@ export function Sidebar({
           <div className="workspace-path">{workspacePath || ''}</div>
         </div>
         <button className="open-workspace-btn" onClick={onOpenWorkspace}>
-          Open Workspace
+          Select AppHost Directory
         </button>
       </div>
 

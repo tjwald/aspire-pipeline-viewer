@@ -12,7 +12,7 @@
 
 ## Introduction
 
-Aspire Pipeline Viewer is a powerful tool for visualizing .NET Aspire deployment pipelines. It helps you understand the dependencies, resources, and execution flow of your application deployment steps.
+Aspire Pipeline Viewer is a tool for visualizing Aspire deployment pipelines. It helps you understand the dependencies, resources, and execution flow of your application deployment steps.
 
 ### Key Features
 
@@ -47,19 +47,23 @@ pnpm build:all
 pnpm dev:app
 ```
 
-### Opening a Diagnostics File
+### Loading Diagnostics
 
-1. Launch the Electron app
-2. Click **File > Open** or press `Ctrl+O`
-3. Navigate to your `.diagnostics` file
-4. The pipeline will be visualized automatically
+There are three ways to load diagnostics into the app:
+
+1. Select AppHost Directory (recommended):
+    - Click **Select AppHost Directory** in the sidebar. This runs `aspire do diagnostics` in the selected AppHost directory and loads the output automatically.
+2. Open diagnostics file from disk:
+    - Click **File > Open** or press `Ctrl+O` and choose a file containing raw `aspire do diagnostics` output (the ugly raw output format). The app will parse and visualize it.
+3. Use the CLI to parse and view diagnostics programmatically:
+    - `pnpm cli --diagnostics ./pipeline.diagnostics --text` will parse and print formatted output.
 
 ### Generating Diagnostics Files
 
-Use the .NET Aspire CLI to generate diagnostics:
+Use the Aspire CLI to generate diagnostics output:
 
 ```bash
-dotnet run --project YourAppHost -- diagnostics > pipeline.diagnostics
+aspire do diagnostics > pipeline.diagnostics
 ```
 
 ## Using the Electron App
@@ -190,54 +194,42 @@ Select a step to view details in the right panel:
 - Use filtering to simplify the view
 - The hierarchical layout should prevent most overlaps
 
-### Performance Issues
+### Troubleshooting
 
-**Problem**: App is slow with large pipelines
+If something goes wrong, try these steps in order:
 
-**Solutions**:
-- Filter steps to reduce visible nodes
-- Close other applications to free memory
-- Consider upgrading hardware for very large pipelines (>100 steps)
+- File won't parse: Ensure the file contains raw `aspire do diagnostics` output. If it was produced by a tool, open the file and look for the `DETAILED STEP ANALYSIS` block.
+- Missing steps in graph: Click **Show All** in the sidebar and use the search box to find the step by name.
+- App shows an error: Check the developer console for parse errors; the app prints diagnostics parsing errors to the console.
+- Still stuck: Open an issue at https://github.com/tjwald/AspirePipelineViewer/issues with a sample of your diagnostics output.
 
-### Can't Find a Step
+## Examples
 
-**Problem**: Step is not visible in the graph
+Below is a short excerpt of the raw diagnostics format (from our test fixture):
 
-**Solutions**:
-- Check if the step is filtered out in the sidebar
-- Click "Show All" to reset filters
-- Use the sidebar search/scroll to find the step
-- Verify the step exists in the diagnostics file
+```
+PIPELINE DEPENDENCY GRAPH DIAGNOSTICS
 
-## Advanced Tips
+DETAILED STEP ANALYSIS
 
-### Comparing Pipelines
+Step: build-prereq
+	Description: Install prerequisites and restore packages
+	Dependencies: none
+	Resource: prerequisites (ExecutableContainerResource)
+	Tags: build, setup
 
-To compare two different pipeline versions:
-1. Take screenshots of each visualization
-2. Use different tag filters to highlight changes
-3. Export both as JSON for programmatic comparison
-
-### Large Pipelines
-
-For pipelines with >50 steps:
-1. Start with "Hide All"
-2. Gradually enable resource groups you need
-3. Use tag filtering to focus on specific phases
-4. Consider viewing different pipeline stages separately
-
-### Understanding Dependencies
-
-- Steps are placed below their dependencies
-- Aggregators collect outputs from multiple resources
-- Arrows show the dependency direction
-- Circular dependencies are not supported by Aspire
+Step: build-app
+	Description: Build the main application
+	Dependencies: ✓ build-prereq
+	Resource: app (ExecutableContainerResource)
+	Tags: build
+```
 
 ## Getting Help
 
-- **GitHub Issues**: https://github.com/yourusername/AspirePipelineViewer/issues
-- **Documentation**: https://github.com/yourusername/AspirePipelineViewer/wiki
-- **Aspire Docs**: https://learn.microsoft.com/dotnet/aspire/
+- **GitHub Issues**: https://github.com/tjwald/AspirePipelineViewer/issues
+- **Documentation**: https://github.com/tjwald/AspirePipelineViewer/wiki
+- **Aspire Docs**: https://aspire.dev/
 
 ## Next Steps
 

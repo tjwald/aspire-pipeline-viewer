@@ -8,9 +8,9 @@
  * 4. Test step selection and details
  * 5. Test filtering and visibility
  */
-import { test, expect, _electron as electron } from '@playwright/test'
-import path from 'path'
+import { test, expect } from '@playwright/test'
 import type { ElectronApplication, Page } from 'playwright'
+import { launchElectronApp } from '../launch-utils'
 
 // Fixture contains 6 steps:
 // build-prereq → build-app → test-unit ↘
@@ -29,17 +29,10 @@ let window: Page
 let pipelineLoaded = false
 
 test.beforeAll(async () => {
-  const mainPath = path.join(process.cwd(), 'dist-electron/main.cjs')
-  const fixturePath = path.join(process.cwd(), 'tests/fixtures/sample-diagnostics.txt')
-
   // Launch with fixture loaded via env var
-  electronApp = await electron.launch({
-    args: [mainPath],
-    env: {
-      ...process.env,
-      NODE_ENV: 'test',
-      ASPIRE_TEST_FIXTURE: fixturePath,
-    },
+  electronApp = await launchElectronApp({
+    fixtureEnvVar: 'ASPIRE_TEST_FIXTURE',
+    fixturePath: 'tests/fixtures/sample-diagnostics.txt',
   })
 
   window = await electronApp.firstWindow()
@@ -59,8 +52,8 @@ test.afterAll(async () => {
 async function ensurePipelineLoaded() {
   if (pipelineLoaded) return
   
-  // Click "Open Workspace" button to trigger fixture loading
-  const openButton = window.locator('button:has-text("Open Workspace")')
+  // Click "Select AppHost Directory" button to trigger fixture loading
+  const openButton = window.locator('button:has-text("Select AppHost Directory")')
   await openButton.click()
   
   // Wait for pipeline to load (graph container should appear)
@@ -72,7 +65,7 @@ async function ensurePipelineLoaded() {
 }
 
 test.describe('Aspire Pipeline Loading', () => {
-  test('should load fixture diagnostics when clicking Open Workspace', async () => {
+  test('should load fixture diagnostics when clicking Select AppHost Directory', async () => {
     // This test loads the pipeline - must run first
     await ensurePipelineLoaded()
     

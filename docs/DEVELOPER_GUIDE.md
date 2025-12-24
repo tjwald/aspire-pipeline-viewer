@@ -4,85 +4,33 @@ Technical documentation for developers contributing to Aspire Pipeline Viewer.
 
 ## Architecture Overview
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        Electron App                         │
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────────────┐ │
-│  │   Main      │◄──►│   Preload   │◄──►│    Renderer     │ │
-│  │  Process    │    │   Bridge    │    │  (React + Vite) │ │
-│  └─────────────┘    └─────────────┘    └─────────────────┘ │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-              ┌───────────────────────────────┐
-              │         @aspire/core          │
-              │  ┌─────────┐ ┌─────────────┐  │
-              │  │ Parser  │ │  Formatter  │  │
-              │  └─────────┘ └─────────────┘  │
-              └───────────────────────────────┘
-                              │
-              ┌───────────────┼───────────────┐
-              ▼               ▼               ▼
-       ┌───────────┐   ┌───────────┐   ┌───────────┐
-       │   CLI     │   │    Web    │   │  Electron │
-       │ Frontend  │   │  Frontend │   │  Frontend │
-       └───────────┘   └───────────┘   └───────────┘
+```mermaid
+flowchart LR
+  Main["Electron Main"] --> Preload["Preload Bridge"]
+  Preload --> Renderer["Renderer (React + Vite)"]
+  Renderer --> Core[@aspire/core]
+  Core --> CLI["CLI"]
+  Core --> Web["Web Frontend"]
+  Core --> ElectronFrontend["Electron Frontend"]
 ```
 
 ## Project Structure
 
-```
-AspirePipelineViewer/
-├── src/
-│   ├── core/                     # Shared core logic (@aspire/core)
-│   │   ├── diagnosticsParser.ts  # Parse diagnostics text to graph
-│   │   ├── diagnosticsService.ts # High-level API
-│   │   ├── diagnosticsFormatter.ts # Format graph to output
-│   │   ├── types/                # TypeScript type definitions
-│   │   └── index.ts              # Package exports
-│   │
-│   └── frontends/
-│       ├── shared/               # Shared UI code
-│       │   ├── components/       # React components
-│       │   │   ├── GraphView.tsx # DAG visualization
-│       │   │   ├── Sidebar.tsx   # Step filtering
-│       │   │   ├── DetailsPanel.tsx
-│       │   │   └── Toolbar.tsx
-│       │   ├── hooks/            # React hooks
-│       │   │   ├── useZoomPan.ts
-│       │   │   └── useToast.ts
-│       │   ├── styles/           # CSS stylesheets
-│       │   └── utils.ts          # Layout calculations
-│       │
-│       ├── cli/                  # CLI frontend
-│       │   └── index.ts
-│       │
-│       ├── web/                  # Web frontend
-│       │   └── ...
-│       │
-│       └── electron/             # Electron frontend
-│           ├── main/             # Main process
-│           ├── preload/          # Preload scripts
-│           └── renderer/         # Renderer entry
-│
-├── tests/                        # Test files
-│   ├── core/                     # Core logic tests
-│   ├── shared/                   # Shared component tests
-│   └── frontends/                # Frontend-specific tests
-│
-├── docs/                         # Documentation
-├── .github/workflows/            # CI/CD configuration
-└── package.json                  # Root package config
-```
+The repository is organized at a high level into a small set of top-level packages and a centralized `tests/` folder. Avoid file-level structure in documentation as it will drift with refactors.
+
+- `src/core/` — Shared parsing and formatting logic (published as `@aspire/core` within the mono-repo).
+- `src/frontends/` — Frontend packages (Electron renderer, CLI, web).
+- `tests/` — End-to-end and unit tests organized by feature (mirrors `src/` hierarchy at a feature level).
+- `docs/`, `.github/`, `package.json` — Docs and CI configuration.
 
 ## Technology Stack
 
 | Layer | Technology | Purpose |
 |-------|------------|---------|
-| Desktop | Electron 39 | Cross-platform desktop app |
-| UI | React 19 | Component-based UI |
-| Build | Vite 5 | Fast bundling and HMR |
-| Language | TypeScript 5.7 | Type safety |
+| Desktop | Electron 39.2.7 | Cross-platform desktop app |
+| UI | React 19.2.3 | Component-based UI |
+| Build | Vite 7.3.0 | Fast bundling and HMR |
+| Language | TypeScript 5.9.3 | Type safety |
 | Testing | Vitest | Unit and integration tests |
 | Linting | ESLint + Prettier | Code quality |
 | Package Manager | pnpm | Fast, disk-efficient |
@@ -99,7 +47,7 @@ AspirePipelineViewer/
 
 ```bash
 # Clone repository
-git clone https://github.com/your-org/AspirePipelineViewer.git
+git clone https://github.com/tjwald/AspirePipelineViewer.git
 cd AspirePipelineViewer
 
 # Install dependencies
@@ -364,46 +312,30 @@ enum ExecutionStatus {
 
 ### Commit Messages
 
-Follow [Conventional Commits](https://conventionalcommits.org/):
+Commit message guidance is intentionally minimal in this project. Keep messages clear and focused on intent. Detailed commit conventions are not enforced here.
 
-```
-feat: add step execution support
-fix: correct edge rendering on zoom
-docs: update CLI documentation
-test: add parser edge case tests
-refactor: extract layout calculation
-```
-
-### Code Review Checklist
-
-- [ ] Tests pass
-- [ ] No linting errors
-- [ ] Types are correct
-- [ ] Documentation updated
-- [ ] No breaking changes (or documented)
 
 ## Troubleshooting
 
 ### Build Errors
 
-```bash
-# Clear caches and reinstall
-rm -rf node_modules .vite dist
-pnpm install
+If you encounter build errors, try clearing generated artifacts and reinstalling dependencies:
+
+```powershell
+pnpm clean && pnpm i
 pnpm build:all
 ```
 
 ### Electron Not Starting
 
-```bash
+```powershell
 # Rebuild native modules
 pnpm rebuild
-pnpm approve-builds
 ```
 
 ### Test Failures
 
-```bash
+```powershell
 # Run specific test with verbose output
 pnpm test tests/core/parser.test.ts -- --reporter=verbose
 ```

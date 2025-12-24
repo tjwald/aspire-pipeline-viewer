@@ -5,10 +5,10 @@ import fs from 'fs'
 
 // Calculate paths from this test file location
 const TEST_DIR = path.dirname(__filename)
-const ROOT_DIR = path.resolve(TEST_DIR, '../../..')
+const ROOT_DIR = path.resolve(TEST_DIR, '../../../..')
 const CLI_PATH = path.join(ROOT_DIR, 'src/frontends/cli/dist/index.js')
-const SAMPLE_DIAGNOSTICS = path.join(TEST_DIR, 'sample-diagnostics.txt')
-const WORKING_DIR = TEST_DIR
+const SAMPLE_DIAGNOSTICS = path.join(TEST_DIR, '../sample-diagnostics.txt')
+const WORKING_DIR = path.dirname(SAMPLE_DIAGNOSTICS)
 
 function runCli(args: string[]): Promise<{ code: number; stdout: string; stderr: string }> {
   return new Promise((resolve) => {
@@ -34,7 +34,7 @@ function runCli(args: string[]): Promise<{ code: number; stdout: string; stderr:
   })
 }
 
-describe('CLI', () => {
+describe('CLI E2E Tests (requires prebuilt CLI)', () => {
   beforeAll(() => {
     expect(fs.existsSync(CLI_PATH)).toBe(true)
     expect(fs.existsSync(SAMPLE_DIAGNOSTICS)).toBe(true)
