@@ -227,9 +227,9 @@ Step: build-app
 
 ## Getting Help
 
--- **GitHub Issues**: https://github.com/tjwald/AspirePipelineViewer/issues
--- **Documentation**: https://github.com/tjwald/AspirePipelineViewer/wiki
--- **Aspire Docs**: https://aspire.dev/
+- **GitHub Issues**: https://github.com/tjwald/AspirePipelineViewer/issues
+- **Documentation**: https://github.com/tjwald/AspirePipelineViewer/wiki
+- **Aspire Docs**: https://aspire.dev/
 
 ## Next Steps
 
