@@ -1,6 +1,6 @@
-import { test, expect, _electron as electron } from '@playwright/test'
-import path from 'path'
+import { test, expect } from '@playwright/test'
 import type { ElectronApplication, Page } from 'playwright'
+import { launchElectronApp } from '../launch-utils'
 
 /**
  * E2E tests for the directory selection and workspace loading flow.
@@ -11,15 +11,7 @@ let electronApp: ElectronApplication
 let window: Page
 
 test.beforeAll(async () => {
-  const mainPath = path.join(process.cwd(), 'dist-electron/main.cjs')
-  
-  electronApp = await electron.launch({
-    args: [mainPath],
-    env: {
-      ...process.env,
-      NODE_ENV: 'test',
-    },
-  })
+  electronApp = await launchElectronApp()
 
   window = await electronApp.firstWindow()
   await window.waitForLoadState('domcontentloaded')

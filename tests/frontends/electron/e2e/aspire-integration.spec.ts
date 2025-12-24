@@ -8,9 +8,9 @@
  * 4. Test step selection and details
  * 5. Test filtering and visibility
  */
-import { test, expect, _electron as electron } from '@playwright/test'
-import path from 'path'
+import { test, expect } from '@playwright/test'
 import type { ElectronApplication, Page } from 'playwright'
+import { launchElectronApp } from '../launch-utils'
 
 // Fixture contains 6 steps:
 // build-prereq → build-app → test-unit ↘
@@ -29,17 +29,10 @@ let window: Page
 let pipelineLoaded = false
 
 test.beforeAll(async () => {
-  const mainPath = path.join(process.cwd(), 'dist-electron/main.cjs')
-  const fixturePath = path.join(process.cwd(), 'tests/fixtures/sample-diagnostics.txt')
-
   // Launch with fixture loaded via env var
-  electronApp = await electron.launch({
-    args: [mainPath],
-    env: {
-      ...process.env,
-      NODE_ENV: 'test',
-      ASPIRE_TEST_FIXTURE: fixturePath,
-    },
+  electronApp = await launchElectronApp({
+    fixtureEnvVar: 'ASPIRE_TEST_FIXTURE',
+    fixturePath: 'tests/fixtures/sample-diagnostics.txt',
   })
 
   window = await electronApp.firstWindow()

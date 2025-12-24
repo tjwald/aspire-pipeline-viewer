@@ -1,27 +1,22 @@
-import { test, expect, _electron as electron } from '@playwright/test'
-import path from 'path'
+import { test, expect } from '@playwright/test'
 import type { ElectronApplication, Page } from 'playwright'
+import { launchElectronApp } from '../launch-utils'
 
 let electronApp: ElectronApplication
 let window: Page
 
 test.beforeAll(async () => {
   console.log('Starting Electron app...')
-  const mainPath = path.join(process.cwd(), 'dist-electron/main.cjs')
-  console.log('Main path:', mainPath)
   
   try {
     // Launch Electron app
-    electronApp = await electron.launch({
-      args: [mainPath],
-      env: {
+    electronApp = await launchElectronApp()
+    
+    const env: any = {
         ...process.env,
         NODE_ENV: 'test',
-      },
-    })
-    console.log('Electron app launched')
-
-    // Wait for the first BrowserWindow (not DevTools)
+    }
+    
     window = await electronApp.firstWindow()
     
     // If DevTools opened, wait for the actual app window
