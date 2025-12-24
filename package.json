@@ -24,7 +24,7 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,md}\"",
     "test": "vitest",
     "test:unit": "vitest run",
-    "test:e2e-cli:only": "vitest run tests/frontends/cli/e2e",
+    "test:e2e-cli:only": "vitest run --config vitest.e2e.config.ts tests/frontends/cli/e2e",
     "test:e2e-cli": "pnpm build:all && pnpm run test:e2e-cli:only",
     "test:e2e-electron:only": "playwright test --reporter=list",
     "test:e2e-electron": "pnpm build:app && pnpm run test:e2e-electron:only",
