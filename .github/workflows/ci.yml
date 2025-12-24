@@ -43,6 +43,7 @@ jobs:
       - uses: ./.github/actions/setup
         
       - name: Cache Playwright Browsers
+        id: playwright-cache
         uses: actions/cache@v4
         with:
           path: |
@@ -54,6 +55,14 @@ jobs:
       - name: Install Playwright Browsers
         run: pnpm exec playwright install --with-deps chromium
         
+      - name: Save Playwright Browsers Cache
+        if: success() && steps.playwright-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
       - name: Build all packages
         run: pnpm build:all
 
@@ -83,8 +92,8 @@ jobs:
       - name: Run CLI e2e tests
         run: pnpm run test:e2e-cli:only
 
-      - name: Run Electron e2e tests
-        run: pnpm run test:e2e-electron:only
+      - name: Run Electron e2e tests (with xvfb)
+        run: xvfb-run -a pnpm run test:e2e-electron:only
 
       - name: Upload Playwright report
         if: failure()
