@@ -6,85 +6,58 @@ on:
   pull_request:
     branches: [ main ]
 
+# Cancel in-progress runs for the same workflow and branch/PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  lint:
-    name: Lint
+  lint-and-test:
+    name: Lint & Unit Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-          
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: 'pnpm'
-          
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/setup
         
       - name: Run ESLint
         run: pnpm lint
-
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-          
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: 'pnpm'
-          
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
         
-      - name: Run tests
-        run: pnpm test -- --coverage --reporter=verbose
+      - name: Run unit tests
+        run: pnpm test:unit -- --coverage --reporter=verbose
         
       - name: Upload coverage
+        if: github.event_name == 'push'
         uses: codecov/codecov-action@v4
         with:
           fail_ci_if_error: false
         continue-on-error: true
 
   build:
-    name: Build
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+    name: Build & E2E Tests
+    runs-on: ubuntu-latest
+    needs: lint-and-test
     steps:
       - uses: actions/checkout@v4
       
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-          
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-          
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/setup
         
       - name: Build all packages
         run: pnpm build:all
         
-      - name: Build Electron
-        run: pnpm build:electron
-
+      - name: Run CLI e2e tests
+        run: pnpm run test:e2e-cli:only
+        
+      - name: Install Playwright Browsers
+        run: pnpm playwright install --with-deps chromium
+        
+      - name: Run Electron e2e tests
+        run: pnpm run test:e2e-electron:only
+        
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

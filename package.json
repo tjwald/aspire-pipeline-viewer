@@ -23,9 +23,13 @@
     "lint": "eslint \"src/**/*.{ts,tsx}\" --max-warnings=0",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,md}\"",
     "test": "vitest",
-    "test:e2e": "pnpm build:app && playwright test --reporter=list",
-    "test:e2e:ui": "pnpm build:app && playwright test --ui",
-    "test:e2e:debug": "pnpm build:app && playwright test --debug",
+    "test:unit": "vitest run",
+    "test:e2e-cli:only": "vitest run tests/frontends/cli/e2e",
+    "test:e2e-cli": "pnpm build:all && pnpm run test:e2e-cli:only",
+    "test:e2e-electron:only": "playwright test --reporter=list",
+    "test:e2e-electron": "pnpm build:app && pnpm run test:e2e-electron:only",
+    "test:e2e-electron:ui": "pnpm build:app && playwright test --ui",
+    "test:e2e-electron:debug": "pnpm build:app && playwright test --debug",
     "cli": "node src/frontends/cli/dist/index.js"
   },
   "dependencies": {
