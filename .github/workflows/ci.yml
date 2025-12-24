@@ -47,27 +47,18 @@ jobs:
         with:
           path: |
             ~/.cache/ms-playwright
-            ~/.pnpm-store
           key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
             playwright-${{ runner.os }}-
         
+      - name: Install Playwright Browsers
+        run: pnpm exec playwright install --with-deps chromium
+        
       - name: Build all packages
         run: pnpm build:all
         
-      - name: Debug - List built files
-        run: |
-          echo "Checking CLI build output..."
-          ls -la src/frontends/cli/ || true
-          ls -la src/frontends/cli/dist/ || true
-          echo "CLI_PATH would be: src/frontends/cli/dist/index.js"
-          test -f src/frontends/cli/dist/index.js && echo "CLI exists!" || echo "CLI NOT FOUND!"
-        
       - name: Run CLI e2e tests
         run: pnpm run test:e2e-cli:only
-        
-      - name: Install Playwright Browsers
-        run: pnpm playwright install --with-deps chromium
         
       - name: Run Electron e2e tests
         run: pnpm run test:e2e-electron:only
