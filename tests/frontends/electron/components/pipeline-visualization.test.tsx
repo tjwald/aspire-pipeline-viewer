@@ -2,16 +2,17 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { GraphView } from '@aspire/shared/components/GraphView';
-import type { PipelineGraph } from '@aspire/core';
+import { ExecutionStatus, type PipelineGraph } from '@aspire/core';
+import { describe, expect, it } from 'vitest';
 
 describe('GraphView (Pipeline Visualization)', () => {
   const mockGraph: PipelineGraph = {
     id: 'test-pipeline',
     name: 'Test Pipeline',
     steps: [
-      { id: 'step-1', name: 'Build', status: 'success' },
-      { id: 'step-2', name: 'Test', status: 'running' },
-      { id: 'step-3', name: 'Deploy', status: 'pending' },
+      { id: 'step-1', name: 'Build', status: ExecutionStatus.Success },
+      { id: 'step-2', name: 'Test', status: ExecutionStatus.Running },
+      { id: 'step-3', name: 'Deploy', status: ExecutionStatus.Pending },
     ],
     edges: [
       { id: 'e1', source: 'step-1', target: 'step-2' },

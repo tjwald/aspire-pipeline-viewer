@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { Sidebar } from '@aspire/shared/components/Sidebar';
 import type { PipelineGraph } from '@aspire/core';
+import { describe, expect, it } from 'vitest';
 
 describe('Sidebar Interactions', () => {
   const mockGraph: PipelineGraph = {

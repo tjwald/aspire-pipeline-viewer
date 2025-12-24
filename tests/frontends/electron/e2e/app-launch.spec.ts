@@ -12,11 +12,6 @@ test.beforeAll(async () => {
     // Launch Electron app
     electronApp = await launchElectronApp()
     
-    const env: any = {
-        ...process.env,
-        NODE_ENV: 'test',
-    }
-    
     window = await electronApp.firstWindow()
     
     // If DevTools opened, wait for the actual app window
