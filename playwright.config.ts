@@ -19,6 +19,9 @@ export default defineConfig({
     {
       name: 'electron',
       testMatch: '**/*.spec.ts',
+      use: {
+        launchArgs: process.env.CI ? ['--no-sandbox'] : [],
+      },
     },
   ],
 })
