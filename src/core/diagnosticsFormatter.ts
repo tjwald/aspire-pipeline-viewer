@@ -1,4 +1,5 @@
-import type { PipelineEdge, PipelineGraph, PipelineStep } from './types/pipeline'
+import type { PipelineGraph } from './types/pipeline'
+import { filterGraphForTarget } from './graphUtils'
 
 export type OutputFormat = 'json' | 'text'
 
@@ -11,52 +12,8 @@ export class DiagnosticsFormatter {
    * @returns Formatted output string
    */
   static format(graph: PipelineGraph, format: OutputFormat, stepFilter?: string): string {
-    const filteredGraph = this.filterByStep(graph, stepFilter)
+    const filteredGraph = stepFilter ? filterGraphForTarget(graph, stepFilter) : graph
     return format === 'json' ? this.formatJson(filteredGraph) : this.formatText(filteredGraph)
-  }
-
-  /**
-   * Filters a graph to include only a specific step and its dependency chain
-   * @param graph The pipeline graph
-   * @param stepId Optional step ID to filter by
-   * @returns Filtered graph or original graph if no filter
-   */
-  private static filterByStep(graph: PipelineGraph, stepId?: string): PipelineGraph {
-    if (!stepId) {
-      return graph
-    }
-
-    const requestedStep = graph.steps.find((step: PipelineStep) => step.id === stepId)
-    if (!requestedStep) {
-      throw new Error(`Step not found: ${stepId}`)
-    }
-
-    // Build dependency chain recursively
-    const includedSteps = new Set<string>()
-    const toVisit = [stepId]
-
-    while (toVisit.length > 0) {
-      const current = toVisit.shift()!
-      if (includedSteps.has(current)) continue
-      includedSteps.add(current)
-
-      const step = graph.steps.find((candidate: PipelineStep) => candidate.id === current)
-      if (step?.dependencies) {
-        toVisit.push(...step.dependencies)
-      }
-    }
-
-    // Filter steps and edges
-    const filteredSteps = graph.steps.filter((step: PipelineStep) => includedSteps.has(step.id))
-    const filteredEdges = graph.edges.filter(
-      (edge: PipelineEdge) => includedSteps.has(edge.source) && includedSteps.has(edge.target),
-    )
-
-    return {
-      ...graph,
-      steps: filteredSteps,
-      edges: filteredEdges,
-    }
   }
 
   /**

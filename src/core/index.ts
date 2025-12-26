@@ -1,5 +1,6 @@
 export { ExecutionStatus } from './types/pipeline'
 export type { PipelineGraph, PipelineStep, PipelineEdge } from './types/pipeline'
+export { filterGraphForTarget } from './graphUtils'
 export { parseDiagnostics } from './diagnosticsParser'
 export { DiagnosticsFormatter } from './diagnosticsFormatter'
 export type { OutputFormat } from './diagnosticsFormatter'
