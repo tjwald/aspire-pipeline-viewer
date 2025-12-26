@@ -34,11 +34,8 @@ export async function launchElectronApp(options?: {
     env[options.fixtureEnvVar] = path.join(process.cwd(), options.fixturePath)
   }
 
-  // Remove Playwright-injected flags that break Electron on Windows
-  const filteredArgs = args.filter(arg => !arg.startsWith('--remote-debugging-port') && !arg.startsWith('--inspect'));
-  return await (electron as any).launch({
-    args: filteredArgs,
+  return await electron.launch({
+    args,
     env,
-    ignoreDefaultArgs: true
   })
 }
