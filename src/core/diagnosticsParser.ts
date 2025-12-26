@@ -13,8 +13,8 @@ export function parseDiagnostics(text: string): PipelineGraph {
 
   const steps: PipelineStep[] = []
 
-  // Split by "Step: " to get each step block
-  const stepBlocks = cleanedText.split(/^Step:\s+/m).slice(1) // Skip first empty split
+  // Split by "Step: " to get each step block (with or without log prefix)
+  const stepBlocks = cleanedText.split(/^(?:Step:|=+\s*\n)?Step:\s+/m).slice(1) // Skip first empty split
 
   for (const block of stepBlocks) {
     const lines = block.split('\n')
@@ -40,7 +40,7 @@ export function parseDiagnostics(text: string): PipelineGraph {
     }
 
     // Extract dependencies - capture until Resource, Tags, or end of block
-    const depsMatch = blockText.match(/^\s*Dependencies:\s*(.+?)(?=\n\s*Resource|\n\s*Tags|$)/ms)
+    const depsMatch = blockText.match(/^\s*Dependencies:\s*(.+?)(?=\n\s*Resource|\n\s*Tags|\n\s*Description|$)/ms)
     if (depsMatch) {
       const depsPart = depsMatch[1].trim()
       if (depsPart.toLowerCase() !== 'none') {
