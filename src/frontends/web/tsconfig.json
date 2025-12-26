@@ -15,11 +15,6 @@
     "jsx": "react-jsx",
     "strict": true,
     "baseUrl": ".",
-    "paths": {
-      "@/core": ["../../core"],
-      "@/frontends/web": ["."],
-      "@/*": ["./*"]
-    }
   },
   "include": ["./**/*"],
   "references": [{ "path": "../../core" }]

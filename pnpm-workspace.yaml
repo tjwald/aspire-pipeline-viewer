@@ -2,4 +2,3 @@ packages:
   - src/core
   - src/frontends/*
 
-onlyBuiltDependencies: '[]'

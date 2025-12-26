@@ -6,7 +6,7 @@
   "main": "../../dist-electron/main.js",
   "scripts": {
     "build": "pnpm build:renderer && pnpm build:electron",
-    "build:electron": "tsc -p tsconfig.json && node --input-type=module -e \"import fs from 'fs'; fs.renameSync('../../../dist-electron/main.js','../../../dist-electron/main.cjs'); fs.renameSync('../../../dist-electron/preload.js','../../../dist-electron/preload.cjs');\"",
+    "build:electron": "tsc -p tsconfig.json",
     "build:renderer": "vite build --config vite.config.ts"
   },
   "dependencies": {
