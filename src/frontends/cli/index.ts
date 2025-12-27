@@ -2,7 +2,7 @@
 import fs from 'fs'
 import path from 'path'
 import readline from 'readline'
-import { DiagnosticsService, validateDirectory, validateFilePath, validateStepName } from '@aspire/core'
+import { DiagnosticsService, validateDirectory, validateFilePath, validateStepName } from '@aspire-pipeline-viewer/core'
 
 type CliOptions = {
   diagnosticsPath?: string

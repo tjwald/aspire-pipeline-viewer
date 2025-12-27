@@ -8,7 +8,7 @@ importers:
 
   .:
     dependencies:
-      '@aspire/core':
+      '@aspire-pipeline-viewer/core':
         specifier: workspace:*
         version: link:src/core
       electron:
@@ -105,7 +105,7 @@ importers:
 
   src/frontends/cli:
     dependencies:
-      '@aspire/core':
+      '@aspire-pipeline-viewer/core':
         specifier: workspace:*
         version: link:../../core
     devDependencies:
@@ -118,7 +118,7 @@ importers:
 
   src/frontends/electron:
     dependencies:
-      '@aspire/core':
+      '@aspire-pipeline-viewer/core':
         specifier: workspace:*
         version: link:../../core
       electron:
@@ -134,7 +134,7 @@ importers:
 
   src/frontends/web:
     dependencies:
-      '@aspire/core':
+      '@aspire-pipeline-viewer/core':
         specifier: workspace:*
         version: link:../../core
       react:

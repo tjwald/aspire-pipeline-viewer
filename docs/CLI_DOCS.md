@@ -182,7 +182,7 @@ The parser extracts `Step`, `Description`, `Dependencies`, `Resource`, and `Tags
 You can also use the CLI functions programmatically:
 
 ```typescript
-import { DiagnosticsService } from '@aspire/core'
+import { DiagnosticsService } from '@aspire-pipeline-viewer/core'
 
 // Parse diagnostics text
 const graph = DiagnosticsService.parse(diagnosticsText)

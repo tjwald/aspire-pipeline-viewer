@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { DiagnosticsFormatter } from '@aspire/core'
-import type { PipelineGraph } from '@aspire/core'
+import { DiagnosticsFormatter } from '@aspire-pipeline-viewer/core'
+import type { PipelineGraph } from '@aspire-pipeline-viewer/core'
 
 const SAMPLE_GRAPH: PipelineGraph = {
   id: 'test-pipeline',

@@ -3,7 +3,7 @@ import { Sidebar } from '../../shared/components/Sidebar'
 import { GraphView } from '../../shared/components/GraphView'
 import { DetailsPanel } from '../../shared/components/DetailsPanel'
 import { ErrorBoundary } from '../../shared/components/ErrorBoundary'
-import type { PipelineGraph } from '@aspire/core'
+import type { PipelineGraph } from '@aspire-pipeline-viewer/core'
 import '../../shared/styles/base.css'
 import '../../shared/styles/sidebar.css'
 import '../../shared/styles/graph.css'
@@ -42,7 +42,7 @@ export default function App() {
       console.log('Diagnostics result:', result)
       if (result?.output) {
         console.log('Parsing output, length:', result.output.length)
-        const { parseDiagnostics } = await import('@aspire/core')
+        const { parseDiagnostics } = await import('@aspire-pipeline-viewer/core')
         const pipelineGraph = parseDiagnostics(result.output)
         console.log('Parsed graph:', pipelineGraph)
         setGraph(pipelineGraph)

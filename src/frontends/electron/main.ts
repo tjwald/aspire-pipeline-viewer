@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import path from 'path'
 import fs from 'fs'
 import { spawn } from 'child_process'
-import { validateDirectory, validateStepName } from '@aspire/core'
+import { validateDirectory, validateStepName } from '@aspire-pipeline-viewer/core'
 
 let mainWindow: BrowserWindow | null = null
 

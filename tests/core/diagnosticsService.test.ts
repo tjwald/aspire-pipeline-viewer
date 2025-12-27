@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { DiagnosticsService } from '@aspire/core'
+import { DiagnosticsService } from '@aspire-pipeline-viewer/core'
 
 const SAMPLE_DIAGNOSTICS = `
 Step: install

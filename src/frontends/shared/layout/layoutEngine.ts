@@ -1,4 +1,4 @@
-import type { PipelineGraph, PipelineStep } from '@aspire/core'
+import type { PipelineGraph, PipelineStep } from '@aspire-pipeline-viewer/core'
 
 // ============================================================================
 // Layout Configuration

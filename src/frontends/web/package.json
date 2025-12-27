@@ -1,15 +1,18 @@
 {
-  "name": "@aspire/web",
+  "name": "@aspire-pipeline-viewer/web",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "main": "dist/main.js",
-  "scripts": {},
+  "scripts": {
+    "test:unit": "vitest --root ../../../ tests/frontends/web/",
+    "test": "pnpm test:unit"
+  },
   "dependencies": {
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "reactflow": "^11.11.4",
-    "@aspire/core": "workspace:*"
+    "@aspire-pipeline-viewer/core": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^18.3.27",

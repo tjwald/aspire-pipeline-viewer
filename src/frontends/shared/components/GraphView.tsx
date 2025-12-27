@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import type { PipelineGraph } from '@aspire/core'
+import type { PipelineGraph } from '@aspire-pipeline-viewer/core'
 import { calculateHierarchicalPositions, getResourceColor, wrapStepName, isAggregator, type CenterLane } from '../utils'
 import { useZoomPan } from '../hooks/useZoomPan'
 import '../styles/graph.css'

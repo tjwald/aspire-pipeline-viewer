@@ -1,5 +1,5 @@
 import React from 'react'
-import type { PipelineGraph } from '@aspire/core'
+import type { PipelineGraph } from '@aspire-pipeline-viewer/core'
 import { useSidebarFilters } from '../hooks/useSidebarFilters'
 import '../styles/sidebar.css'
 
