@@ -1,8 +1,8 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { Sidebar } from '@aspire/shared/components/Sidebar';
-import type { PipelineGraph } from '@aspire/core';
+import { Sidebar } from '@aspire-pipeline-viewer/shared/components/Sidebar';
+import type { PipelineGraph } from '@aspire-pipeline-viewer/core';
 import { describe, expect, it } from 'vitest';
 
 describe('Sidebar (Workspace Selection)', () => {

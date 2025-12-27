@@ -1,17 +1,19 @@
 {
-  "name": "@aspire/cli",
+  "name": "@aspire-pipeline-viewer/cli",
   "version": "0.0.0",
   "private": true,
   "bin": {
     "aspire-cli": "dist/index.js"
   },
   "dependencies": {
-    "@aspire/core": "workspace:*"
+    "@aspire-pipeline-viewer/core": "workspace:*"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "start": "node dist/index.js",
-    "test": "vitest"
+    "dev": "node dist/index.js",
+    "test:e2e:only": "vitest --root ../../../ --config vitest.e2e.config.ts tests/frontends/cli/",
+    "test:e2e": "pnpm build && pnpm test:e2e:only",
+    "test": "pnpm test:e2e"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",

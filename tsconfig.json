@@ -18,11 +18,9 @@
     "noUnusedParameters": false,
     "baseUrl": ".",
     "paths": {
-      "@aspire/core": ["src/core/index.ts"],
-      "@aspire/core/*": ["src/core/*"],
-      "@aspire/shared/*": ["src/frontends/shared/*"],
-      "@/core": ["src/core"],
-      "@/frontends/web": ["src/frontends/web"]
+      "@aspire-pipeline-viewer/core": ["src/core/index.ts"],
+      "@aspire-pipeline-viewer/core/*": ["src/core/*"],
+      "@aspire-pipeline-viewer/shared/*": ["src/frontends/shared/*"],
     }
   },
   "include": ["src", "tests"]

@@ -1,7 +1,7 @@
 /**
  * Shared theme tokens for pipeline UI.
  */
-import type { ExecutionStatus } from '@aspire/core'
+import type { ExecutionStatus } from '@aspire-pipeline-viewer/core'
 
 export const EXECUTION_STATUS_COLORS: Record<ExecutionStatus, { bg: string; text: string }> = {
   running: { bg: '#3b82f6', text: '#fff' },

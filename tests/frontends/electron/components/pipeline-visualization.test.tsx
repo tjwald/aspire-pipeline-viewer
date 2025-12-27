@@ -1,8 +1,8 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { GraphView } from '@aspire/shared/components/GraphView';
-import { ExecutionStatus, type PipelineGraph } from '@aspire/core';
+import { GraphView } from '@aspire-pipeline-viewer/shared/components/GraphView';
+import { ExecutionStatus, type PipelineGraph } from '@aspire-pipeline-viewer/core';
 import { describe, expect, it } from 'vitest';
 
 describe('GraphView (Pipeline Visualization)', () => {

@@ -1,5 +1,5 @@
 import React from 'react'
-import type { PipelineGraph, PipelineStep } from '@aspire/core'
+import type { PipelineGraph, PipelineStep } from '@aspire-pipeline-viewer/core'
 import '../styles/details.css'
 
 type DetailsPanelProps = {

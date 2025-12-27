@@ -4,8 +4,8 @@ import {
   type LayoutResult,
   wrapStepName,
   getResourceColor,
-} from '@/frontends/shared/utils'
-import { ExecutionStatus, type PipelineGraph } from '@aspire/core'
+} from '@aspire-pipeline-viewer/shared/utils';
+import { ExecutionStatus, type PipelineGraph } from '@aspire-pipeline-viewer/core'
 
 describe('calculateHierarchicalPositions', () => {
   it('should calculate layout for simple linear pipeline', () => {

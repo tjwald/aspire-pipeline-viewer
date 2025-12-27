@@ -3,8 +3,8 @@
  */
 import fs from 'fs'
 import { spawn } from 'child_process'
-import type { DiagnosticsProvider, CommandRunner, Logger } from '@aspire/core'
-import { ConsoleLogger, validateDirectory, validateFilePath } from '@aspire/core'
+import type { DiagnosticsProvider, CommandRunner, Logger } from '@aspire-pipeline-viewer/core'
+import { ConsoleLogger, validateDirectory, validateFilePath } from '@aspire-pipeline-viewer/core'
 
 export class NodeDiagnosticsProvider implements DiagnosticsProvider {
   private diagnosticsPath: string

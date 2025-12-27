@@ -1,5 +1,5 @@
 {
-  "name": "@aspire/core",
+  "name": "@aspire-pipeline-viewer/core",
   "version": "0.0.0",
   "private": true,
   "main": "dist/index.js",
@@ -12,7 +12,8 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "vitest"
+    "test:unit": "vitest --root ../.. tests/core",
+    "test": "pnpm test:unit"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",

@@ -81,7 +81,7 @@ pnpm cli --help
 ```
 AspirePipelineViewer/
 ├── src/
-│   ├── core/                 # Shared parser and formatter (@aspire/core)
+│   ├── core/                 # Shared parser and formatter (@aspire-pipeline-viewer/core)
 │   └── frontends/
 │       ├── shared/           # Shared React components
 │       ├── cli/              # Command-line interface

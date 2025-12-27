@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
-import type { PipelineGraph, PipelineStep } from '@aspire/core'
+import type { PipelineGraph, PipelineStep } from '@aspire-pipeline-viewer/core'
 
 export type StepGroup = {
   name: string

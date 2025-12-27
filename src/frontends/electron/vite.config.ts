@@ -21,7 +21,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'renderer'),
-      '@aspire/core': path.resolve(__dirname, '../../core/index.ts'),
+      '@aspire-pipeline-viewer/core': path.resolve(__dirname, '../../core/index.ts'),
     },
   },
 })

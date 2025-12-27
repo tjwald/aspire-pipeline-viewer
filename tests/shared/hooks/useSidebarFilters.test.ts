@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useSidebarFilters } from '../../../src/frontends/shared/hooks/useSidebarFilters'
-import type { PipelineGraph } from '@aspire/core'
+import type { PipelineGraph } from '@aspire-pipeline-viewer/core'
 
 const createTestGraph = (): PipelineGraph => ({
   id: 'test',

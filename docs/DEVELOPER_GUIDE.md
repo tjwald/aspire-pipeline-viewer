@@ -8,7 +8,7 @@ Technical documentation for developers contributing to Aspire Pipeline Viewer.
 flowchart LR
   Main["Electron Main"] --> Preload["Preload Bridge"]
   Preload --> Renderer["Renderer (React + Vite)"]
-  Renderer --> Core[@aspire/core]
+  Renderer --> Core[@aspire-pipeline-viewer/core]
   Core --> CLI["CLI"]
   Core --> Web["Web Frontend"]
   Core --> ElectronFrontend["Electron Frontend"]
@@ -18,7 +18,7 @@ flowchart LR
 
 The repository is organized at a high level into a small set of top-level packages and a centralized `tests/` folder. Avoid file-level structure in documentation as it will drift with refactors.
 
-- `src/core/` — Shared parsing and formatting logic (published as `@aspire/core` within the mono-repo).
+- `src/core/` — Shared parsing and formatting logic (published as `@aspire-pipeline-viewer/core` within the mono-repo).
 - `src/frontends/` — Frontend packages (Electron renderer, CLI, web).
 - `tests/` — End-to-end and unit tests organized by feature (mirrors `src/` hierarchy at a feature level).
 - `docs/`, `.github/`, `package.json` — Docs and CI configuration.
@@ -240,7 +240,7 @@ Shows selected step information.
 High-level API for parsing and formatting.
 
 ```typescript
-import { DiagnosticsService } from '@aspire/core'
+import { DiagnosticsService } from '@aspire-pipeline-viewer/core'
 
 // Parse text to graph
 const graph = DiagnosticsService.parse(text)
@@ -258,7 +258,7 @@ const output = DiagnosticsService.analyze(text, 'json', 'stepId')
 Low-level parsing functions.
 
 ```typescript
-import { DiagnosticsParser } from '@aspire/core'
+import { DiagnosticsParser } from '@aspire-pipeline-viewer/core'
 
 const graph = DiagnosticsParser.parse(text)
 ```
