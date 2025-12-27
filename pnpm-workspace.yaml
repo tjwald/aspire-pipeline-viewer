@@ -2,4 +2,6 @@ packages:
   - src/core
   - src/frontends/*
 
-onlyBuiltDependencies: '[]'
+onlyBuiltDependencies:
+  - electron
+  - esbuild
