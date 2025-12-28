@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import type { PipelineGraph } from '@aspire/core'
-import { filterGraphForTarget } from '@aspire/core'
+import type { PipelineGraph } from '@aspire-pipeline-viewer/core'
+import { filterGraphForTarget } from '@aspire-pipeline-viewer/core'
 
 const SAMPLE_GRAPH: PipelineGraph = {
   id: 'sample',
