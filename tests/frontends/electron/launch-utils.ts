@@ -14,7 +14,7 @@ export async function launchElectronApp(options?: {
   additionalEnv?: Record<string, string>
 }): Promise<ElectronApplication> {
 
-  const mainPath = path.join(process.cwd(), 'dist-electron/main.cjs')
+  const mainPath = path.join(process.cwd(), 'dist-electron/main.js')
   // Build args with CI sandbox handling
   const args = [mainPath]
   if (process.env.CI || process.env.GITHUB_ACTIONS) {

@@ -3,20 +3,20 @@
   "version": "0.1.0",
   "private": true,
   "description": "Visual DAG viewer for Aspire pipelines",
-  "type": "module",
   "workspaces": [
     "src/core",
     "src/frontends/*"
   ],
-  "main": "dist-electron/main.cjs",
+  "main": "dist-electron/main.js",
   "scripts": {
     "build": "pnpm -r run build",
     "dev:app": "pnpm --filter @aspire-pipeline-viewer/electron dev",
     "clean": "rimraf node_modules dist dist-electron .pnpm-store playwright-report test-results || true",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,md}\"",
     "lint": "eslint \"src/**/*.{ts,tsx}\" --max-warnings=0",
-    "test": "pnpm -w -r test",
+    "test": "pnpm -r test",
     "test:unit": "vitest run",
+    "test:e2e": "pnpm -r test:e2e",
     "cli": "pnpm --filter @aspire-pipeline-viewer/cli dev"
   },
   "dependencies": {
