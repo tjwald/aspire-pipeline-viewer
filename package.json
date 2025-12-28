@@ -17,8 +17,6 @@
     "lint": "eslint \"src/**/*.{ts,tsx}\" --max-warnings=0",
     "test": "pnpm -w -r test",
     "test:unit": "vitest run",
-    "test:e2e:only": "vitest --config vitest.e2e.config.ts run",
-    "test:e2e": "pnpm build && pnpm test:e2e:only",
     "cli": "pnpm --filter @aspire-pipeline-viewer/cli dev"
   },
   "dependencies": {

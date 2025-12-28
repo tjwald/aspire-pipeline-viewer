@@ -10,7 +10,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "dev": "node dist/index.js",
+    "dev": "pnpm build && node dist/index.js",
     "test:e2e:only": "vitest --root ../../../ --config vitest.e2e.config.ts tests/frontends/cli/",
     "test:e2e": "pnpm build && pnpm test:e2e:only",
     "test": "pnpm test:e2e"
