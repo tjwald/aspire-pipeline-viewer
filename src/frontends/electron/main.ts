@@ -3,8 +3,16 @@ import path from 'path'
 import fs from 'fs'
 import { spawn } from 'child_process'
 import { validateDirectory, validateStepName } from '@aspire-pipeline-viewer/core'
+import { RunService } from './services/runService'
 
 let mainWindow: BrowserWindow | null = null
+
+// create a shared RunService instance for the app
+const runService = new RunService()
+
+export function getRunService() {
+  return runService
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -55,15 +63,17 @@ function createWindow() {
   })
 }
 
-app.on('ready', createWindow)
+if (app && typeof app.on === 'function') {
+  app.on('ready', createWindow)
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit()
-})
+  app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') app.quit()
+  })
 
-app.on('activate', () => {
-  if (mainWindow === null) createWindow()
-})
+  app.on('activate', () => {
+    if (mainWindow === null) createWindow()
+  })
+}
 
 // Shared command runner for aspire CLI commands
 function runAspireCommand(
@@ -114,38 +124,81 @@ function runAspireCommand(
   })
 }
 
-// IPC handlers
-ipcMain.handle('select-apphost-directory', async () => {
-  // In test mode with fixture, return the fixture directory
-  const testFixture = process.env.ASPIRE_TEST_FIXTURE
-  if (testFixture) {
-    return path.dirname(testFixture)
+// Exported setup function for run-related IPC handlers and event forwarding.
+export function setupRunIpcHandlers(
+  ipc: { handle?: Function },
+  svc: RunService,
+  getWindow: () => BrowserWindow | null
+) {
+  // register ipc handlers if available
+  if (ipc && typeof ipc.handle === 'function') {
+    ipc.handle('run-step', async (_evt: any, stepName: string) => {
+      return svc.startRun(stepName)
+    })
+
+    ipc.handle('kill-run', async (_evt: any, runId: string) => {
+      return svc.stopRun(runId)
+    })
+
+    ipc.handle('rename-run', async (_evt: any, runId: string, name: string) => {
+      return svc.renameRun(runId, name)
+    })
   }
-  
-  const result = await dialog.showOpenDialog(mainWindow!, {
-    properties: ['openDirectory'],
-    title: 'Select AppHost Directory',
+
+  // forward events emitted by RunService
+  svc.on('event', (payload: any) => {
+    const win = getWindow()
+    if (!win) return
+    const { runId, event } = payload
+    // forward general output events
+    win.webContents.send('run-output', { runId, event })
+    // forward status-change for terminal statuses
+    if (event && (event.type === 'success' || event.type === 'failure')) {
+      win.webContents.send('run-status-change', { runId, status: event.type, event })
+    }
   })
-  if (result.canceled || result.filePaths.length === 0) return null
-  return result.filePaths[0]
-})
+}
 
-ipcMain.handle('run-aspire-do', async (_evt, directory: string, step: string) => {
-  // Validate step name to prevent command injection
-  const stepValidation = validateStepName(step)
-  if (!stepValidation.valid) {
-    throw new Error(`Invalid step name: ${stepValidation.error}`)
-  }
-  return runAspireCommand(directory, ['do', step])
-})
+// Register non-run IPC handlers only if ipcMain is functional
+if (ipcMain && typeof ipcMain.handle === 'function') {
+  ipcMain.handle('select-apphost-directory', async () => {
+    // In test mode with fixture, return the fixture directory
+    const testFixture = process.env.ASPIRE_TEST_FIXTURE
+    if (testFixture) {
+      return path.dirname(testFixture)
+    }
 
-ipcMain.handle('get-apphost-diagnostics', async (_evt, directory: string) => {
-  // In test mode with fixture, return fixture content instead of running aspire
-  const testFixture = process.env.ASPIRE_TEST_FIXTURE
-  if (testFixture && fs.existsSync(testFixture)) {
-    const output = fs.readFileSync(testFixture, 'utf-8')
-    return { code: 0, output }
-  }
-  
-  return runAspireCommand(directory, ['do', 'diagnostics'])
-})
+    const result = await dialog.showOpenDialog(mainWindow!, {
+      properties: ['openDirectory'],
+      title: 'Select AppHost Directory',
+    })
+    if (result.canceled || result.filePaths.length === 0) return null
+    return result.filePaths[0]
+  })
+
+  ipcMain.handle('run-aspire-do', async (_evt, directory: string, step: string) => {
+    // Validate step name to prevent command injection
+    const stepValidation = validateStepName(step)
+    if (!stepValidation.valid) {
+      throw new Error(`Invalid step name: ${stepValidation.error}`)
+    }
+    return runAspireCommand(directory, ['do', step])
+  })
+
+  ipcMain.handle('get-apphost-diagnostics', async (_evt, directory: string) => {
+    // In test mode with fixture, return fixture content instead of running aspire
+    const testFixture = process.env.ASPIRE_TEST_FIXTURE
+    if (testFixture && fs.existsSync(testFixture)) {
+      const output = fs.readFileSync(testFixture, 'utf-8')
+      return { code: 0, output }
+    }
+
+    return runAspireCommand(directory, ['do', 'diagnostics'])
+  })
+
+  // wire up run handlers for the real app
+  setupRunIpcHandlers(ipcMain, runService, () => mainWindow)
+}
+
+// expose runService for tests
+export { runService }
