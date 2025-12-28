@@ -10,10 +10,6 @@ let mainWindow: BrowserWindow | null = null
 // create a shared RunService instance for the app
 const runService = new RunService()
 
-export function getRunService() {
-  return runService
-}
-
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -125,7 +121,7 @@ function runAspireCommand(
 }
 
 // Exported setup function for run-related IPC handlers and event forwarding.
-export function setupRunIpcHandlers(
+function setupRunIpcHandlers(
   ipc: { handle?: Function },
   svc: RunService,
   getWindow: () => BrowserWindow | null
@@ -199,6 +195,3 @@ if (ipcMain && typeof ipcMain.handle === 'function') {
   // wire up run handlers for the real app
   setupRunIpcHandlers(ipcMain, runService, () => mainWindow)
 }
-
-// expose runService for tests
-export { runService }

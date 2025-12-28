@@ -1,10 +1,20 @@
-export { ExecutionStatus } from './types/pipeline'
-export type { PipelineGraph, PipelineStep, PipelineEdge } from './types/pipeline'
-export { filterGraphForTarget } from './graphUtils'
-export { parseDiagnostics } from './diagnosticsParser'
-export { DiagnosticsFormatter } from './diagnosticsFormatter'
-export type { OutputFormat } from './diagnosticsFormatter'
-export { DiagnosticsService } from './diagnosticsService'
-export type { DiagnosticsProvider, CommandRunner, DirectoryChooser, Logger, ServiceContainer } from './services'
-export { ConsoleLogger } from './services'
-export { validateDirectory, validateStepName, validateFilePath } from './security'
+export { ExecutionStatus } from './types/pipeline';
+export type { PipelineGraph, PipelineStep, PipelineEdge } from './types/pipeline';
+export { filterGraphForTarget } from './graphUtils';
+export { parseDiagnostics } from './diagnosticsParser';
+export { DiagnosticsFormatter } from './diagnosticsFormatter';
+export type { OutputFormat } from './diagnosticsFormatter';
+export { DiagnosticsService } from './diagnosticsService';
+export type {
+  DiagnosticsProvider,
+  CommandRunner,
+  DirectoryChooser,
+  Logger,
+  ServiceContainer,
+  ParsedEvent,
+  IRunService,
+  ParsedEventType,
+  IEventStream,
+} from './services';
+export { parseLogLine, ConsoleLogger } from './services';
+export { validateDirectory, validateStepName, validateFilePath } from './security';

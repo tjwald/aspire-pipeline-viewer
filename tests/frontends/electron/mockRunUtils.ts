@@ -1,6 +1,5 @@
 import { EventEmitter } from 'events'
-import { parseLogLine } from '@aspire-pipeline-viewer/core/services/logParser'
-import type { IRunService } from '@aspire-pipeline-viewer/core/services/interfaces'
+import { parseLogLine, type IRunService } from '@aspire-pipeline-viewer/core';
 
 export interface MockRunServiceOptions {
   // kept for API parity; not used to avoid filesystem IO

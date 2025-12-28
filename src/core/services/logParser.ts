@@ -1,7 +1,5 @@
 import type { ParsedEvent } from './interfaces'
 
-export type { ParsedEvent }
-
 /**
  * Parse a single log line from aspire output and return zero-or-more ParsedEvent entries.
  * The parser is pure and takes an optional referenceDateMs so tests can assert deterministic timestamps.

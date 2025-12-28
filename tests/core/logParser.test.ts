@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseLogLine } from '@aspire-pipeline-viewer/core/services/logParser'
+import { parseLogLine } from '@aspire-pipeline-viewer/core'
 
 describe('LogParser', () => {
   const ref = Date.UTC(2025, 0, 1)

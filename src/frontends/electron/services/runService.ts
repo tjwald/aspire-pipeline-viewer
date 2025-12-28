@@ -2,8 +2,7 @@ import { spawn, ChildProcess } from 'child_process'
 import { EventEmitter } from 'events'
 import fs from 'fs'
 import path from 'path'
-import { parseLogLine, ParsedEvent } from '@aspire-pipeline-viewer/core/services/logParser'
-import type { IRunService } from '@aspire-pipeline-viewer/core/services/interfaces'
+import { parseLogLine, ParsedEvent, type IRunService } from '@aspire-pipeline-viewer/core';
 
 function getUserDataPath(): string {
   try {
