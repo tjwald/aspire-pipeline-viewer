@@ -114,7 +114,7 @@ export function LogViewer({ logs, selectedStepId, autoScroll = true }: LogViewer
   // Filter logs based on selected step
   const filteredLogs = useMemo(() => {
     if (!selectedStepId) return logs
-    return logs.filter((log) => !log.stepName || log.stepName === selectedStepId)
+    return logs.filter((log) => (!log.stepName && !selectedStepId) || log.stepName === selectedStepId)
   }, [logs, selectedStepId])
 
   // Auto-scroll to bottom when new logs arrive
