@@ -4,15 +4,18 @@ import { calculateHierarchicalPositions, getResourceColor, wrapStepName, isAggre
 import { useZoomPan } from '../hooks/useZoomPan'
 import '../styles/graph.css'
 
+export type StepStatus = 'pending' | 'running' | 'success' | 'failed' | 'skipped'
+
 export type GraphViewProps = {
   graph: PipelineGraph
   selectedStepId?: string
   onSelectStep?: (id: string) => void
   visibleStepIds?: Set<string>
   onRunStep?: (stepId: string) => void
+  nodeStatuses?: Record<string, StepStatus>
 }
 
-export function GraphView({ graph, selectedStepId, onSelectStep, visibleStepIds, onRunStep }: GraphViewProps) {
+export function GraphView({ graph, selectedStepId, onSelectStep, visibleStepIds, onRunStep, nodeStatuses }: GraphViewProps) {
   const wrapperRef = useRef<HTMLDivElement | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [hoveredStepId, setHoveredStepId] = useState<string | null>(null)
@@ -315,6 +318,22 @@ export function GraphView({ graph, selectedStepId, onSelectStep, visibleStepIds,
     return edges
   }
 
+  const statusBadgeColors: Record<StepStatus, string> = {
+    pending: '#bdbdbd',
+    running: '#2196f3',
+    success: '#43a047',
+    failed: '#e53935',
+    skipped: '#bdbdbd',
+  }
+
+  const statusBadgeIcons: Record<StepStatus, string> = {
+    pending: '⏳',
+    running: '▶️',
+    success: '✔️',
+    failed: '❌',
+    skipped: '⏭️',
+  }
+
   const renderNodes = () => {
     return filteredGraph.steps
       .filter((step) => !isAggregator(step))
@@ -325,6 +344,7 @@ export function GraphView({ graph, selectedStepId, onSelectStep, visibleStepIds,
         const lines = wrapStepName(step.name)
         const nodeColor = getResourceColor(step.resource)
         const isSelected = selectedStepId === step.id
+        const status = nodeStatuses?.[step.id]
 
         return (
           <g
@@ -349,6 +369,33 @@ export function GraphView({ graph, selectedStepId, onSelectStep, visibleStepIds,
               onContextMenu={(e) => handleNodeContextMenu(e, step.id)}
               style={{ cursor: 'pointer' }}
             />
+            {/* Status badge */}
+            {status && (
+              <g
+                className="graph-node-badge"
+                key={`${step.id}-${status}`}
+                transform={`translate(${pos.x + 70},${pos.y - 35})`}
+              >
+                <title>{status.charAt(0).toUpperCase() + status.slice(1)}</title>
+                <circle
+                  r="14"
+                  fill={statusBadgeColors[status]}
+                  stroke="#222"
+                  strokeWidth="2"
+                  filter="url(#shadow)"
+                />
+                <text
+                  x="0"
+                  y="5"
+                  textAnchor="middle"
+                  fontSize="16"
+                  fontWeight="bold"
+                  fill="#fff"
+                >
+                  {statusBadgeIcons[status]}
+                </text>
+              </g>
+            )}
             <text x={pos.x} y={pos.y - 8} textAnchor="middle" fontSize={12} fontWeight="bold" fill="#ffffff">
               {lines.map((line, idx) => (
                 <tspan key={idx} x={pos.x} dy={idx === 0 ? '0' : '1.2em'}>
@@ -370,6 +417,7 @@ export function GraphView({ graph, selectedStepId, onSelectStep, visibleStepIds,
         
         const isSelected = selectedStepId === step.id
         const size = 45
+        const status = nodeStatuses?.[step.id]
 
         // Hexagon points
         const hexPoints = [
@@ -401,6 +449,33 @@ export function GraphView({ graph, selectedStepId, onSelectStep, visibleStepIds,
               onContextMenu={(e) => handleNodeContextMenu(e, step.id)}
               style={{ cursor: 'pointer' }}
             />
+            {/* Status badge for aggregator node */}
+            {status && (
+              <g
+                className="graph-node-badge"
+                key={`${step.id}-${status}`}
+                transform={`translate(${pos.x + size * 0.7},${pos.y - size * 0.7})`}
+              >
+                <title>{status.charAt(0).toUpperCase() + status.slice(1)}</title>
+                <circle
+                  r="14"
+                  fill={statusBadgeColors[status]}
+                  stroke="#222"
+                  strokeWidth="2"
+                  filter="url(#shadow)"
+                />
+                <text
+                  x="0"
+                  y="5"
+                  textAnchor="middle"
+                  fontSize="16"
+                  fontWeight="bold"
+                  fill="#fff"
+                >
+                  {statusBadgeIcons[status]}
+                </text>
+              </g>
+            )}
             {/* Icon */}
             <text x={pos.x} y={pos.y - 12} textAnchor="middle" fontSize={16}>
               ⚡

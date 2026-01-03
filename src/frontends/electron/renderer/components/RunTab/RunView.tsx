@@ -1,6 +1,7 @@
 import React, { useMemo, useEffect, useState, useCallback } from 'react'
 import { GraphView } from '../../../../shared/components/GraphView'
 import { LogViewer, type LogLine } from './LogViewer'
+import { Sidebar } from '../../../../shared/components/Sidebar'
 import type { NodeStatusesMap, StepStatus } from './GraphNodeBadge'
 import type { PipelineGraph } from '@aspire-pipeline-viewer/core'
 
@@ -64,7 +65,21 @@ export function RunView({ runId, graph, targetStepId, initialName }: RunViewProp
   const [isRenaming, setIsRenaming] = useState(false)
   const [editName, setEditName] = useState(runState.name)
 
-  // Compute filtered graph (only target step and its dependencies)
+  // Utility to strip ANSI codes and normalize
+  function stripAnsi(s: string): string {
+    return s ? s.replace(/\x1b\[[0-9;]*m/g, '').trim().toLowerCase() : ''
+  }
+
+  // Map stepName (from logs) to stepId (from graph), robust to ANSI and case
+  const stepNameToId = useMemo(() => {
+    const map: Record<string, string> = {}
+    graph.steps.forEach((s) => {
+      map[stripAnsi(s.name)] = s.id
+    })
+    return map
+  }, [graph])
+
+  // Compute filtered graph and sidebar steps (only target step and its dependencies)
   const filteredGraph = useMemo((): PipelineGraph => {
     const visibleSteps = getTransitiveDependencies(graph, targetStepId)
     const filteredSteps = graph.steps.filter((s) => visibleSteps.has(s.id))
@@ -81,6 +96,12 @@ export function RunView({ runId, graph, targetStepId, initialName }: RunViewProp
     }
   }, [graph, targetStepId])
 
+  // Filter sidebar steps
+  const filteredSteps = useMemo(() => {
+    const visibleSteps = getTransitiveDependencies(graph, targetStepId)
+    return graph.steps.filter((s) => visibleSteps.has(s.id))
+  }, [graph, targetStepId])
+
   // Subscribe to run events from electronAPI
   useEffect(() => {
     if (!window.electronAPI?.onRunOutput || !window.electronAPI?.onRunStatusChange) {
@@ -90,9 +111,23 @@ export function RunView({ runId, graph, targetStepId, initialName }: RunViewProp
     const unsubOutput = window.electronAPI.onRunOutput(
       (data: { runId: string; line: string; stepName?: string; timestamp: number }) => {
         if (data.runId !== runId) return
+        // Debug: log raw and processed log info to the console for troubleshooting
+        // eslint-disable-next-line no-console
+        console.log('[RunView] Log received:', {
+          raw: data,
+          strippedStepName: data.stepName ? stripAnsi(data.stepName) : undefined,
+          mappedStepId: data.stepName ? stepNameToId[stripAnsi(data.stepName)] : undefined
+        });
+        // Attach stepId to log for filtering (robust to ANSI/case)
+        let stepId = data.stepName && stepNameToId[stripAnsi(data.stepName)]
+        // Fallback: if not found, try direct match (legacy)
+        if (!stepId && data.stepName) {
+          const fallback = Object.entries(stepNameToId).find(([k]) => data.stepName && k.includes(stripAnsi(data.stepName!)))
+          if (fallback) stepId = fallback[1]
+        }
         setRunState((prev) => ({
           ...prev,
-          logs: [...prev.logs, { timestamp: data.timestamp, text: data.line, stepName: data.stepName }],
+          logs: [...prev.logs, { timestamp: data.timestamp, text: data.line, stepName: data.stepName, stepId }],
         }))
       }
     )
@@ -100,10 +135,16 @@ export function RunView({ runId, graph, targetStepId, initialName }: RunViewProp
     const unsubStatus = window.electronAPI.onRunStatusChange(
       (data: { runId: string; status: 'running' | 'success' | 'failed'; nodeStatuses: NodeStatusesMap }) => {
         if (data.runId !== runId) return
+        // Remap nodeStatuses keys if needed (robust to ANSI/case)
+        const remapped: NodeStatusesMap = {}
+        Object.entries(data.nodeStatuses).forEach(([k, v]) => {
+          const id = graph.steps.find(s => s.id === k || stripAnsi(s.name) === stripAnsi(k))?.id
+          if (id) remapped[id] = v
+        })
         setRunState((prev) => ({
           ...prev,
           status: data.status,
-          nodeStatuses: { ...prev.nodeStatuses, ...data.nodeStatuses },
+          nodeStatuses: { ...prev.nodeStatuses, ...remapped },
         }))
       }
     )
@@ -112,7 +153,7 @@ export function RunView({ runId, graph, targetStepId, initialName }: RunViewProp
       unsubOutput?.()
       unsubStatus?.()
     }
-  }, [runId])
+  }, [runId, graph, stepNameToId])
 
   // Elapsed time counter
   useEffect(() => {
@@ -226,6 +267,7 @@ export function RunView({ runId, graph, targetStepId, initialName }: RunViewProp
             selectedStepId={selectedStepId}
             onSelectStep={handleNodeClick}
           />
+          <Sidebar graph={graph} onSelectStep={handleNodeClick} />
         </div>
         <div
           className="run-splitter"
@@ -354,30 +396,8 @@ function RunGraphWithBadges({ graph, nodeStatuses, selectedStepId, onSelectStep 
         graph={graph}
         selectedStepId={selectedStepId}
         onSelectStep={onSelectStep}
+        nodeStatuses={nodeStatuses}
       />
-      {/* Badge overlay - rendered via portal or absolute positioning */}
-      <div className="graph-badges-overlay" data-testid="graph-badges-overlay">
-        {Object.entries(nodeStatuses).map(([stepId, status]) => (
-          <div key={stepId} className={`badge-marker badge-${status}`} data-step-id={stepId} data-status={status}>
-            <StatusIndicator status={status} />
-          </div>
-        ))}
-      </div>
-      <style>{`
-        .run-graph-wrapper {
-          position: relative;
-          height: 100%;
-        }
-        .graph-badges-overlay {
-          position: absolute;
-          top: 0;
-          left: 0;
-          pointer-events: none;
-        }
-        .badge-marker {
-          display: none; /* Hidden by default, shown via JS positioning */
-        }
-      `}</style>
     </div>
   )
 }

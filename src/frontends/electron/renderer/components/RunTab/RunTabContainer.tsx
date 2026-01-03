@@ -50,29 +50,37 @@ export function RunTabContainer({ graph, tabs, onCloseTab }: RunTabContainerProp
   if (tabs.length === 0) {
     return (
       <div className="run-tab-container empty" data-testid="run-tab-container-empty">
-        <div className="empty-message">
-          <p>No active runs</p>
-          <p className="hint">Right-click a step in the graph or use the sidebar to start a run.</p>
+        <div className="empty-message-container">
+          <div className="empty-message">
+            <p>No active runs</p>
+            <p className="hint">Right-click a step in the graph or use the sidebar to start a run.</p>
+          </div>
         </div>
         <style>{`
           .run-tab-container.empty {
             display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+          }
+          .empty-message-container {
+            flex: 1;
+            display: flex;
             align-items: center;
             justify-content: center;
-            height: 100%;
             background: #1e1e1e;
+            min-height: 0;
           }
           .empty-message {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             text-align: center;
             color: #858585;
           }
-          .empty-message p {
-            margin: 8px 0;
-          }
-          .empty-message .hint {
-            font-size: 13px;
-            color: #6a6a6a;
-          }
+          .empty-message p { margin: 8px 0 }
+          .empty-message .hint { font-size: 13px; color: #6a6a6a }
         `}</style>
       </div>
     )
