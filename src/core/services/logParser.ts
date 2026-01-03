@@ -6,8 +6,16 @@ import type { ParsedEvent } from './interfaces'
  * This version does not use regex and is robust to spinner lines and malformed input.
  */
 export function parseLogLine(line: string, referenceDateMs?: number): ParsedEvent[] {
-  const raw = (line ?? '').replace(/\r$/, '').trim()
-  if (!raw) return []
+  // Merge fragments split by cursor/escape codes
+  const mergeFragments = (input: string): string => {
+    // Remove ANSI escape/cursor codes except for newlines
+    const cleaned = input.replace(/\u001b\[[0-9;]*[A-Za-z]|\u001b\].*?\\|\u001b\[\?25[lh]|\u001b\[2[KA]|\u001b\[1A/g, '');
+    // Merge lines that are split by cursor movement
+    return cleaned.replace(/\n\s*→/g, ' →');
+  };
+  const merged = mergeFragments(line ?? '');
+  const raw = merged.replace(/\r$/, '').trim();
+  if (!raw) return [];
 
   // Ignore spinner-only lines (those with only spinner unicode or ANSI codes)
   const spinnerChars = ['⠋','⠙','⠚','⠞','⠖','⠦','⠴','⠲','⠳','⠓']
@@ -33,21 +41,33 @@ export function parseLogLine(line: string, referenceDateMs?: number): ParsedEven
   function parseStepAndType(str: string): { stepName?: string, type: ParsedEvent['type'] } {
     // Find (step-name) marker, but allow for lines that end right after the step
     const stepStart = str.indexOf('(')
-    const stepEnd = str.indexOf(')', stepStart)
+    const stepEnd = str.indexOf(')', stepStart);
     if (stepStart !== -1 && stepEnd !== -1) {
-      const stepName = str.slice(stepStart + 1, stepEnd)
-      const afterStep = str.slice(stepEnd + 1).trim()
+      const stepName = str.slice(stepStart + 1, stepEnd);
+      const afterStep = str.slice(stepEnd + 1).trim();
       // If nothing after the step, still emit stepName
-      if (!afterStep) return { stepName, type: 'line' }
+      if (!afterStep) return { stepName, type: 'line' };
       // Accept lines like '(step) i [INF] ...' as generic step lines
-      if (afterStep.startsWith('→ Starting')) return { stepName, type: 'start' }
-      if (afterStep.includes('✓')) return { stepName, type: 'success' }
-      if (afterStep.includes('✗')) return { stepName, type: 'failure' }
+      if (afterStep.startsWith('→ Starting')) return { stepName, type: 'start' };
+      if (afterStep.includes('✓')) return { stepName, type: 'success' };
+      if (afterStep.includes('✗')) return { stepName, type: 'failure' };
       // If it starts with 'i [INF]' or similar, treat as 'line' with stepName
-      if (/^(i\s*\[INF\]|i\s*\[ERR\]|i\s*\[WRN\])/.test(afterStep)) return { stepName, type: 'line' }
-      return { stepName, type: 'line' }
+      if (/^(i\s*\[INF\]|i\s*\[ERR\]|i\s*\[WRN\])/.test(afterStep)) return { stepName, type: 'line' };
+      return { stepName, type: 'line' };
     }
-    return { type: 'line' }
+    // Try to extract stepName from lines like 'stepName) ...' (missing opening paren)
+    const fallbackStepMatch = str.match(/^(\w[\w-]*)\)\s*(.*)$/);
+    if (fallbackStepMatch) {
+      const stepName = fallbackStepMatch[1];
+      const afterStep = fallbackStepMatch[2].trim();
+      if (!afterStep) return { stepName, type: 'line' };
+      if (afterStep.startsWith('→ Starting')) return { stepName, type: 'start' };
+      if (afterStep.includes('✓')) return { stepName, type: 'success' };
+      if (afterStep.includes('✗')) return { stepName, type: 'failure' };
+      if (/^(i\s*\[INF\]|i\s*\[ERR\]|i\s*\[WRN\])/.test(afterStep)) return { stepName, type: 'line' };
+      return { stepName, type: 'line' };
+    }
+    return { type: 'line' };
   }
 
   // Main parse logic

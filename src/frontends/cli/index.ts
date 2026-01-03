@@ -18,6 +18,7 @@ Aspire Pipeline Viewer CLI
 
 Usage:
   aspire-pipeline-cli [options]
+  aspire-pipeline-cli run-step --directory <path> --step <name>
 
 Options:
   --diagnostics, -d <path>    Path to diagnostics file (relative to cwd)
@@ -28,6 +29,9 @@ Options:
   --no-interactive            Non-interactive mode (fail if inputs missing)
   --help, -h                  Show this help message
 
+Commands:
+  run-step                    Execute a step and stream parsed output in real time
+
 Examples:
   # Parse from file
   aspire-pipeline-cli --diagnostics ./diagnostics.txt
@@ -35,8 +39,11 @@ Examples:
   # Interactive mode (prompts for missing inputs)
   aspire-pipeline-cli
 
-  # Run a step
+  # Run a step (filtered output)
   aspire-pipeline-cli --directory . --step build --no-interactive
+
+  # Execute and stream a step
+  aspire-pipeline-cli run-step --directory . --step build
 `
 
 function parseArgs(argv: string[]): CliOptions {
@@ -102,118 +109,176 @@ async function interactiveMode(rl: readline.Interface): Promise<{ diagnosticsPat
   return { diagnosticsPath }
 }
 
-async function main() {
-  const argv = process.argv.slice(2)
-  const opts = parseArgs(argv)
+import { RunServiceCLI } from './IRunServiceCLI';
 
-  if (opts.showHelp) {
-    console.log(HELP_TEXT)
-    process.exit(0)
+async function runStepCommand(directory: string, stepName: string) {
+  const { validateDirectory, validateStepName } = await import('@aspire-pipeline-viewer/core');
+  const path = await import('path');
+
+  // Validate directory
+  const dirValidation = validateDirectory(path.resolve(process.cwd(), directory));
+  if (!dirValidation.valid) {
+    console.error(`❌ Invalid directory: ${dirValidation.error}`);
+    process.exit(1);
+  }
+  const resolvedDir = dirValidation.normalized!;
+
+  // Validate step name
+  const stepValidation = validateStepName(stepName);
+  if (!stepValidation.valid) {
+    console.error(`❌ Invalid step name: ${stepValidation.error}`);
+    process.exit(1);
   }
 
-  let diagnosticsPath = opts.diagnosticsPath
-  let directory = opts.directory
+  // Use CLI-side IRunService
+  const runService = new RunServiceCLI(resolvedDir);
+  runService.on('event', ({ runId, event }) => {
+    // Output all events as JSON
+    console.log(JSON.stringify(event));
+  });
+
+  try {
+    const runId = await runService.startRun(stepName);
+    // Wait for process to finish (handled by RunServiceCLI)
+    // Optionally, add graceful shutdown or error handling here
+  } catch (err) {
+    console.error(`❌ Failed to run step: ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(1);
+  }
+}
+
+async function main() {
+  const argv = process.argv.slice(2);
+
+  // Check for run-step command
+  if (argv[0] === 'run-step') {
+    let directory = '';
+    let stepName = '';
+    for (let i = 1; i < argv.length; i++) {
+      if (argv[i] === '--directory' || argv[i] === '-C') {
+        directory = argv[++i];
+      } else if (argv[i] === '--step') {
+        stepName = argv[++i];
+      }
+    }
+    if (!directory || !stepName) {
+      console.error('❌ run-step requires --directory and --step');
+      process.exit(1);
+    }
+    await runStepCommand(directory, stepName);
+    return;
+  }
+
+  const opts = parseArgs(argv);
+
+  if (opts.showHelp) {
+    console.log(HELP_TEXT);
+    process.exit(0);
+  }
+
+  let diagnosticsPath = opts.diagnosticsPath;
+  let directory = opts.directory;
 
   // Interactive mode if needed
   if (!diagnosticsPath && !directory && !opts.nonInteractive) {
-    const rl = createReadlineInterface()
-    const inputs = await interactiveMode(rl)
-    diagnosticsPath = inputs.diagnosticsPath
-    directory = inputs.directory
-    rl.close()
+    const rl = createReadlineInterface();
+    const inputs = await interactiveMode(rl);
+    diagnosticsPath = inputs.diagnosticsPath;
+    directory = inputs.directory;
+    rl.close();
   }
 
   // Resolve diagnostics
   if (!diagnosticsPath && !directory) {
-    console.error('❌ Error: No diagnostics path or directory provided')
-    console.error('Use --help for usage information')
-    process.exit(1)
+    console.error('❌ Error: No diagnostics path or directory provided');
+    console.error('Use --help for usage information');
+    process.exit(1);
   }
 
   try {
-    let diagnosticsText: string
+    let diagnosticsText: string;
 
     if (diagnosticsPath) {
       // Validate diagnostics file path to prevent path traversal
-      const pathValidation = validateFilePath(diagnosticsPath, process.cwd())
+      const pathValidation = validateFilePath(diagnosticsPath, process.cwd());
       if (!pathValidation.valid) {
-        throw new Error(`Invalid diagnostics path: ${pathValidation.error}`)
+        throw new Error(`Invalid diagnostics path: ${pathValidation.error}`);
       }
 
-      const resolvedPath = pathValidation.normalized!
+      const resolvedPath = pathValidation.normalized!;
       if (!fs.existsSync(resolvedPath)) {
-        throw new Error(`Diagnostics file not found: ${resolvedPath}`)
+        throw new Error(`Diagnostics file not found: ${resolvedPath}`);
       }
-      diagnosticsText = fs.readFileSync(resolvedPath, 'utf-8')
+      diagnosticsText = fs.readFileSync(resolvedPath, 'utf-8');
     } else if (directory) {
       // Validate directory to prevent path traversal
-      const dirValidation = validateDirectory(path.resolve(process.cwd(), directory))
+      const dirValidation = validateDirectory(path.resolve(process.cwd(), directory));
       if (!dirValidation.valid) {
-        throw new Error(`Invalid directory: ${dirValidation.error}`)
+        throw new Error(`Invalid directory: ${dirValidation.error}`);
       }
 
-      const resolvedDir = dirValidation.normalized!
+      const resolvedDir = dirValidation.normalized!;
 
-      const { spawn } = await import('child_process')
+      const { spawn } = await import('child_process');
       const result = await new Promise<string>((resolve, reject) => {
-        const aspireCmd = process.platform === 'win32' ? 'aspire.exe' : 'aspire'
+        const aspireCmd = process.platform === 'win32' ? 'aspire.exe' : 'aspire';
         const proc = spawn(aspireCmd, ['do', 'diagnostics'], {
           cwd: resolvedDir,
           stdio: ['pipe', 'pipe', 'pipe'],
-        })
+        });
 
-        let output = ''
-        let errorOutput = ''
+        let output = '';
+        let errorOutput = '';
 
         proc.stdout?.on('data', (data) => {
-          output += data.toString()
-        })
+          output += data.toString();
+        });
 
         proc.stderr?.on('data', (data) => {
-          errorOutput += data.toString()
-        })
+          errorOutput += data.toString();
+        });
 
         proc.on('close', (code) => {
           if (code !== 0 && !output && !errorOutput) {
-            reject(new Error(`aspire do diagnostics failed with code ${code}`))
+            reject(new Error(`aspire do diagnostics failed with code ${code}`));
           } else {
             // aspire outputs to both stdout and stderr, so we use whichever has content
-            resolve(output || errorOutput)
+            resolve(output || errorOutput);
           }
-        })
+        });
 
         proc.on('error', (err) => {
-          reject(new Error(`Failed to run aspire: ${err.message}`))
-        })
-      })
+          reject(new Error(`Failed to run aspire: ${err.message}`));
+        });
+      });
 
-      diagnosticsText = result
+      diagnosticsText = result;
     } else {
-      throw new Error('No input source')
+      throw new Error('No input source');
     }
 
     // Validate step name if provided
     if (opts.step) {
-      const stepValidation = validateStepName(opts.step)
+      const stepValidation = validateStepName(opts.step);
       if (!stepValidation.valid) {
-        throw new Error(`Invalid step name: ${stepValidation.error}`)
+        throw new Error(`Invalid step name: ${stepValidation.error}`);
       }
     }
 
     // Use the core service to analyze diagnostics
-    const output = DiagnosticsService.analyze(diagnosticsText, opts.outputFormat, opts.step)
-    console.log(output)
+    const output = DiagnosticsService.analyze(diagnosticsText, opts.outputFormat, opts.step);
+    console.log(output);
 
     // Exit with success
-    process.exit(0)
+    process.exit(0);
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    console.error(`❌ Error: ${message}`)
-    process.exit(1)
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`❌ Error: ${message}`);
+    process.exit(1);
   }
 }
 
 main().catch((err) => {
-  console.error('❌ Fatal error:', err)
-  process.exit(1)
-})
+  console.error('❌ Fatal error:', err);
+  process.exit(1);
+});
