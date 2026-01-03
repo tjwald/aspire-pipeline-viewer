@@ -14,6 +14,20 @@ const electronAPI = {
     ipcRenderer.on('aspire-error', handler)
     return () => ipcRenderer.removeListener('aspire-error', handler)
   },
+  // Run management methods (Phase 4)
+  runStep: (runId?: string) => ipcRenderer.invoke('run-step', runId),
+  killRun: (runId: string) => ipcRenderer.invoke('kill-run', runId),
+  renameRun: (runId: string, newName: string) => ipcRenderer.invoke('rename-run', runId, newName),
+  onRunOutput: (cb: (event: { runId: string; line: string; timestamp: number; stepName?: string }) => void) => {
+    const handler = (_e: IpcRendererEvent, data: { runId: string; line: string; timestamp: number; stepName?: string }) => cb(data)
+    ipcRenderer.on('run-output', handler)
+    return () => ipcRenderer.removeListener('run-output', handler)
+  },
+  onRunStatusChange: (cb: (event: { runId: string; status: string; nodeStatuses?: Record<string, string> }) => void) => {
+    const handler = (_e: IpcRendererEvent, data: { runId: string; status: string; nodeStatuses?: Record<string, string> }) => cb(data)
+    ipcRenderer.on('run-status-change', handler)
+    return () => ipcRenderer.removeListener('run-status-change', handler)
+  },
 }
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI)

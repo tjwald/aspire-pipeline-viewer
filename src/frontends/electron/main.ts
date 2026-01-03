@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, type IpcMainInvokeEvent } from 'electron'
 import path from 'path'
 import fs from 'fs'
 import { spawn } from 'child_process'
@@ -120,29 +120,45 @@ function runAspireCommand(
   })
 }
 
+// Type for IPC handle function
+type IpcHandleFunction = (
+  channel: string,
+  listener: (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown
+) => void
+
+// Type for run event payload
+interface RunEventPayload {
+  runId: string
+  event: {
+    type: string
+    text: string
+    timestamp: number
+  }
+}
+
 // Exported setup function for run-related IPC handlers and event forwarding.
 function setupRunIpcHandlers(
-  ipc: { handle?: Function },
+  ipc: { handle?: IpcHandleFunction },
   svc: RunService,
   getWindow: () => BrowserWindow | null
 ) {
   // register ipc handlers if available
   if (ipc && typeof ipc.handle === 'function') {
-    ipc.handle('run-step', async (_evt: any, stepName: string) => {
-      return svc.startRun(stepName)
+    ipc.handle('run-step', async (_evt: IpcMainInvokeEvent, stepName: unknown) => {
+      return svc.startRun(String(stepName))
     })
 
-    ipc.handle('kill-run', async (_evt: any, runId: string) => {
-      return svc.stopRun(runId)
+    ipc.handle('kill-run', async (_evt: IpcMainInvokeEvent, runId: unknown) => {
+      return svc.stopRun(String(runId))
     })
 
-    ipc.handle('rename-run', async (_evt: any, runId: string, name: string) => {
-      return svc.renameRun(runId, name)
+    ipc.handle('rename-run', async (_evt: IpcMainInvokeEvent, runId: unknown, name: unknown) => {
+      return svc.renameRun(String(runId), String(name))
     })
   }
 
   // forward events emitted by RunService
-  svc.on('event', (payload: any) => {
+  svc.on('event', (payload: RunEventPayload) => {
     const win = getWindow()
     if (!win) return
     const { runId, event } = payload
@@ -195,3 +211,6 @@ if (ipcMain && typeof ipcMain.handle === 'function') {
   // wire up run handlers for the real app
   setupRunIpcHandlers(ipcMain, runService, () => mainWindow)
 }
+
+// Export for testing
+export { setupRunIpcHandlers }

@@ -6,8 +6,8 @@ import { parseLogLine, ParsedEvent, type IRunService } from '@aspire-pipeline-vi
 
 function getUserDataPath(): string {
   try {
-    // prefer Electron if available
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    // prefer Electron if available - dynamic require is intentional for optional dependency
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const electron = require('electron')
     return electron.app?.getPath?.('userData') || process.cwd()
   } catch {
@@ -31,8 +31,8 @@ export class RunService extends EventEmitter implements IRunService {
     this.baseDir = userDataDir || path.join(getUserDataPath(), 'runs')
     try {
       fs.mkdirSync(this.baseDir, { recursive: true })
-    } catch (e) {
-      // ignore
+    } catch {
+      // ignore - directory may already exist
     }
   }
 
@@ -73,9 +73,9 @@ export class RunService extends EventEmitter implements IRunService {
     proc.stderr?.on('data', handleChunk)
 
     proc.on('exit', (code) => {
-      try { ws.end() } catch {}
+      try { ws.end() } catch { /* stream may already be closed */ }
       const finalText = `${new Date().toISOString()} (system) → process-exit code=${code}\n`
-      try { fs.appendFileSync(logPath, finalText) } catch {}
+      try { fs.appendFileSync(logPath, finalText) } catch { /* ignore append errors */ }
       const ev: ParsedEvent = { timestamp: Date.now(), type: code === 0 ? 'success' : 'failure', text: finalText }
       this.emit('event', { runId, event: ev })
     })
@@ -91,10 +91,10 @@ export class RunService extends EventEmitter implements IRunService {
     if (!rec) return
     try {
       rec.proc?.kill()
-    } catch (e) {
-      // ignore
+    } catch {
+      // ignore - process may already be terminated
     }
-    try { rec.writeStream?.end() } catch {}
+    try { rec.writeStream?.end() } catch { /* stream may already be closed */ }
     this.runs.delete(runId)
   }
 
@@ -105,7 +105,8 @@ export class RunService extends EventEmitter implements IRunService {
       const meta = JSON.parse(raw)
       meta.name = name
       await fs.promises.writeFile(metaPath, JSON.stringify(meta, null, 2), 'utf-8')
-    } catch (e) {
+    } catch {
+      // File doesn't exist, create new metadata
       const meta = { runId, name, startedAt: Date.now() }
       await fs.promises.writeFile(metaPath, JSON.stringify(meta, null, 2), 'utf-8')
     }
@@ -121,10 +122,11 @@ export class RunService extends EventEmitter implements IRunService {
           const raw = await fs.promises.readFile(path.join(this.baseDir, f), 'utf-8')
           const meta = JSON.parse(raw)
           metas.push({ runId: meta.runId, name: meta.name, startedAt: meta.startedAt })
-        } catch {}
+        } catch { /* ignore malformed metadata files */ }
       }
       return metas.sort((a, b) => b.startedAt - a.startedAt)
-    } catch (e) {
+    } catch {
+      // Directory doesn't exist or can't be read
       return []
     }
   }

@@ -1,0 +1,358 @@
+import React, { useMemo, useEffect, useState, useCallback } from 'react'
+import { GraphView } from '../../../../shared/components/GraphView'
+import { LogViewer, type LogLine } from './LogViewer'
+import type { NodeStatusesMap, StepStatus } from './GraphNodeBadge'
+import type { PipelineGraph } from '@aspire-pipeline-viewer/core'
+
+export interface RunViewProps {
+  runId: string
+  graph: PipelineGraph
+  targetStepId: string
+  initialName?: string
+}
+
+interface RunState {
+  status: 'running' | 'success' | 'failed'
+  nodeStatuses: NodeStatusesMap
+  logs: LogLine[]
+  startTime: number
+  name: string
+}
+
+/**
+ * Get the transitive dependencies of a step (including the step itself)
+ */
+function getTransitiveDependencies(graph: PipelineGraph, stepId: string): Set<string> {
+  const result = new Set<string>([stepId])
+  const step = graph.steps.find((s) => s.id === stepId)
+
+  if (!step?.dependencies) return result
+
+  const queue = [...step.dependencies]
+  while (queue.length > 0) {
+    const depId = queue.shift()!
+    if (result.has(depId)) continue
+    result.add(depId)
+    const depStep = graph.steps.find((s) => s.id === depId)
+    if (depStep?.dependencies) {
+      queue.push(...depStep.dependencies)
+    }
+  }
+
+  return result
+}
+
+export function RunView({ runId, graph, targetStepId, initialName }: RunViewProps) {
+  const [selectedStepId, setSelectedStepId] = useState<string | undefined>()
+  const [runState, setRunState] = useState<RunState>(() => {
+    const visibleSteps = getTransitiveDependencies(graph, targetStepId)
+    const initialStatuses: NodeStatusesMap = {}
+    visibleSteps.forEach((id) => {
+      initialStatuses[id] = 'pending'
+    })
+    return {
+      status: 'running',
+      nodeStatuses: initialStatuses,
+      logs: [],
+      startTime: Date.now(),
+      name: initialName || `Run ${targetStepId} ${new Date().toLocaleTimeString()}`,
+    }
+  })
+  const [elapsed, setElapsed] = useState(0)
+  const [isRenaming, setIsRenaming] = useState(false)
+  const [editName, setEditName] = useState(runState.name)
+
+  // Compute filtered graph (only target step and its dependencies)
+  const filteredGraph = useMemo((): PipelineGraph => {
+    const visibleSteps = getTransitiveDependencies(graph, targetStepId)
+    const filteredSteps = graph.steps.filter((s) => visibleSteps.has(s.id))
+    const filteredEdges = graph.edges.filter(
+      (e) => visibleSteps.has(e.source) && visibleSteps.has(e.target)
+    )
+    return {
+      ...graph,
+      steps: filteredSteps.map((s) => ({
+        ...s,
+        dependencies: s.dependencies?.filter((d) => visibleSteps.has(d)),
+      })),
+      edges: filteredEdges,
+    }
+  }, [graph, targetStepId])
+
+  // Subscribe to run events from electronAPI
+  useEffect(() => {
+    if (!window.electronAPI?.onRunOutput || !window.electronAPI?.onRunStatusChange) {
+      return
+    }
+
+    const unsubOutput = window.electronAPI.onRunOutput(
+      (data: { runId: string; line: string; stepName?: string; timestamp: number }) => {
+        if (data.runId !== runId) return
+        setRunState((prev) => ({
+          ...prev,
+          logs: [...prev.logs, { timestamp: data.timestamp, text: data.line, stepName: data.stepName }],
+        }))
+      }
+    )
+
+    const unsubStatus = window.electronAPI.onRunStatusChange(
+      (data: { runId: string; status: 'running' | 'success' | 'failed'; nodeStatuses: NodeStatusesMap }) => {
+        if (data.runId !== runId) return
+        setRunState((prev) => ({
+          ...prev,
+          status: data.status,
+          nodeStatuses: { ...prev.nodeStatuses, ...data.nodeStatuses },
+        }))
+      }
+    )
+
+    return () => {
+      unsubOutput?.()
+      unsubStatus?.()
+    }
+  }, [runId])
+
+  // Elapsed time counter
+  useEffect(() => {
+    if (runState.status !== 'running') return
+    const interval = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - runState.startTime) / 1000))
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [runState.status, runState.startTime])
+
+  const formatElapsed = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`
+  }
+
+  const handleKillRun = useCallback(async () => {
+    if (window.electronAPI?.killRun) {
+      await window.electronAPI.killRun(runId)
+    }
+  }, [runId])
+
+  const handleSaveRename = useCallback(async () => {
+    if (window.electronAPI?.renameRun) {
+      await window.electronAPI.renameRun(runId, editName)
+    }
+    setRunState((prev) => ({ ...prev, name: editName }))
+    setIsRenaming(false)
+  }, [runId, editName])
+
+  const handleNodeClick = (stepId: string) => {
+    // Toggle selection - clicking same node deselects
+    setSelectedStepId((prev) => (prev === stepId ? undefined : stepId))
+  }
+
+  // Status badge colors
+  const statusBadgeStyle: Record<string, React.CSSProperties> = {
+    running: { background: '#f59e0b', color: '#000' },
+    success: { background: '#22c55e', color: '#000' },
+    failed: { background: '#ef4444', color: '#fff' },
+  }
+
+  return (
+    <div className="run-view" data-testid="run-view" data-run-id={runId}>
+      <header className="run-header">
+        <div className="run-header-left">
+          {isRenaming ? (
+            <input
+              type="text"
+              className="run-name-input"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              onBlur={handleSaveRename}
+              onKeyDown={(e) => e.key === 'Enter' && handleSaveRename()}
+              autoFocus
+              data-testid="run-name-input"
+            />
+          ) : (
+            <h2 className="run-name" onClick={() => setIsRenaming(true)} data-testid="run-name">
+              {runState.name}
+            </h2>
+          )}
+          <span className="run-badge" style={statusBadgeStyle[runState.status]} data-testid="run-status-badge">
+            {runState.status === 'running' && '● '}
+            {runState.status.charAt(0).toUpperCase() + runState.status.slice(1)}
+          </span>
+          <span className="run-timer">{formatElapsed(elapsed)}</span>
+        </div>
+        <div className="run-header-right">
+          {runState.status === 'running' && (
+            <button className="run-kill-btn" onClick={handleKillRun} data-testid="kill-run-btn">
+              ■ Stop
+            </button>
+          )}
+        </div>
+      </header>
+
+      <div className="run-content">
+        <div className="run-graph-panel">
+          <RunGraphWithBadges
+            graph={filteredGraph}
+            nodeStatuses={runState.nodeStatuses}
+            selectedStepId={selectedStepId}
+            onSelectStep={handleNodeClick}
+          />
+        </div>
+        <div className="run-log-panel">
+          <LogViewer logs={runState.logs} selectedStepId={selectedStepId} />
+        </div>
+      </div>
+
+      <style>{`
+        .run-view {
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+          background: #1e1e1e;
+        }
+        .run-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 12px 16px;
+          background: #252526;
+          border-bottom: 1px solid #3c3c3c;
+        }
+        .run-header-left {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .run-header-right {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .run-name {
+          margin: 0;
+          font-size: 16px;
+          font-weight: 600;
+          color: #e0e0e0;
+          cursor: pointer;
+        }
+        .run-name:hover {
+          text-decoration: underline;
+        }
+        .run-name-input {
+          font-size: 16px;
+          font-weight: 600;
+          background: #3c3c3c;
+          border: 1px solid #0e639c;
+          color: #e0e0e0;
+          padding: 4px 8px;
+          border-radius: 4px;
+        }
+        .run-badge {
+          padding: 4px 8px;
+          border-radius: 4px;
+          font-size: 12px;
+          font-weight: 600;
+        }
+        .run-timer {
+          color: #858585;
+          font-size: 14px;
+        }
+        .run-kill-btn {
+          padding: 6px 12px;
+          background: #ef4444;
+          color: #fff;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 12px;
+          font-weight: 600;
+        }
+        .run-kill-btn:hover {
+          background: #dc2626;
+        }
+        .run-content {
+          flex: 1;
+          display: flex;
+          overflow: hidden;
+        }
+        .run-graph-panel {
+          flex: 1;
+          min-width: 300px;
+          overflow: hidden;
+          border-right: 1px solid #3c3c3c;
+        }
+        .run-log-panel {
+          flex: 1;
+          min-width: 300px;
+          overflow: hidden;
+        }
+      `}</style>
+    </div>
+  )
+}
+
+/**
+ * Wrapper component that overlays status badges on GraphView nodes
+ */
+interface RunGraphWithBadgesProps {
+  graph: PipelineGraph
+  nodeStatuses: NodeStatusesMap
+  selectedStepId?: string
+  onSelectStep?: (id: string) => void
+}
+
+function RunGraphWithBadges({ graph, nodeStatuses, selectedStepId, onSelectStep }: RunGraphWithBadgesProps) {
+  return (
+    <div className="run-graph-wrapper" data-testid="run-graph-wrapper">
+      <GraphView
+        graph={graph}
+        selectedStepId={selectedStepId}
+        onSelectStep={onSelectStep}
+      />
+      {/* Badge overlay - rendered via portal or absolute positioning */}
+      <div className="graph-badges-overlay" data-testid="graph-badges-overlay">
+        {Object.entries(nodeStatuses).map(([stepId, status]) => (
+          <div key={stepId} className={`badge-marker badge-${status}`} data-step-id={stepId} data-status={status}>
+            <StatusIndicator status={status} />
+          </div>
+        ))}
+      </div>
+      <style>{`
+        .run-graph-wrapper {
+          position: relative;
+          height: 100%;
+        }
+        .graph-badges-overlay {
+          position: absolute;
+          top: 0;
+          left: 0;
+          pointer-events: none;
+        }
+        .badge-marker {
+          display: none; /* Hidden by default, shown via JS positioning */
+        }
+      `}</style>
+    </div>
+  )
+}
+
+function StatusIndicator({ status }: { status: StepStatus }) {
+  const config = {
+    pending: { symbol: '○', color: '#858585' },
+    running: { symbol: '◉', color: '#f59e0b' },
+    success: { symbol: '✓', color: '#22c55e' },
+    failed: { symbol: '✗', color: '#ef4444' },
+    skipped: { symbol: '⊘', color: '#6b7280' },
+  }
+
+  return (
+    <span
+      style={{ color: config[status].color, fontSize: '14px', fontWeight: 'bold' }}
+      data-testid={`status-indicator-${status}`}
+    >
+      {config[status].symbol}
+    </span>
+  )
+}
+
+// Export for test access
+export { getTransitiveDependencies }
