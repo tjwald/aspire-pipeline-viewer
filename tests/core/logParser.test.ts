@@ -97,3 +97,74 @@ describe('LogParser real-world OSC/ANSI lines', () => {
     }
   });
 });
+
+describe('LogParser regression: aspire lint output', () => {
+  const ref = Date.UTC(2025, 0, 1)
+  const regressionLines = [
+    '\x1b]9;4;3\x1b\\23:56:40 (pipeline-execution) → Starting pipeline-execution...',
+    '\x1b]9;4;3\x1b\\23:56:40 (install-uv-app) → Starting install-uv-app...',
+    '\x1b]9;4;3\x1b\\23:56:40 (lint-frontend) → Starting lint-frontend...',
+    '\x1b]9;4;3\x1b\\23:56:40 (lint-frontend) i [INF] Linting for frontend completed successfully.',
+    '\x1b]9;4;3\x1b\\23:56:40 (lint-frontend) ✓ lint-frontend completed successfully',
+    '\x1b]9;4;3\x1b\\23:56:40 (install-uv-app) ✗ [ERR] Resolved 70 packages in 0.81ms',
+    '\x1b]9;4;3\x1b\\23:56:40 (install-uv-app) ✗ [ERR] Audited 69 packages in 2ms',
+    '\x1b]9;4;3\x1b\\23:56:40 (install-uv-app) ✓ install-uv-app completed successfully',
+    '\x1b]9;4;3\x1b\\23:56:40 (install-app) → Starting install-app...',
+    '\x1b]9;4;3\x1b\\23:56:40 (install-app) i [INF] Installation for app completed successfully.',
+    '\x1b]9;4;3\x1b\\23:56:40 (install-app) ✓ install-app completed successfully',
+    '\x1b]9;4;3\x1b\\23:56:40 (lint-lock-check-app) → Starting lint-lock-check-app...',
+    '\x1b]9;4;3\x1b\\23:56:40 (lint-ruff-app) → Starting lint-ruff-app...',
+    '\x1b]9;4;3\x1b\\23:56:40 (lint-mypy-app) → Starting lint-mypy-app...',
+    '\x1b]9;4;3\x1b\\23:56:40 (lint-lock-check-app) ✗ [ERR] Resolved 70 packages in 1ms',
+    '\x1b]9;4;3\x1b\\23:56:40 (lint-lock-check-app) ✓ lint-lock-check-app completed successfully',
+    '\x1b]9;4;3\x1b\\23:56:40 (lint-ruff-app) i [INF] All checks passed!',
+    '\x1b]9;4;3\x1b\\23:56:40 (lint-ruff-app) ✓ lint-ruff-app completed successfully',
+    '\x1b]9;4;3\x1b\\23:56:40 (lint-mypy-app) i [INF] Success: no issues found in 6 source files',
+    '\x1b]9;4;3\x1b\\23:56:40 (lint-mypy-app) ✓ lint-mypy-app completed successfully',
+    '\x1b]9;4;3\x1b\\23:56:40 (lint-app) → Starting lint-app...',
+    '\x1b]9;4;3\x1b\\23:56:40 (lint-app) i [INF] Linting for app completed successfully.',
+    '\x1b]9;4;3\x1b\\23:56:40 (lint-app) ✓ lint-app completed successfully',
+    '\x1b]9;4;3\x1b\\23:56:40 (lint) → Starting lint...',
+    '\x1b]9;4;3\x1b\\23:56:40 (lint) i [INF] Linting finished successfully.',
+    '\x1b]9;4;3\x1b\\23:56:40 (lint) ✓ lint completed successfully',
+    '\x1b]9;4;3\x1b\\23:56:40 (pipeline-execution) ✓ Completed successfully',
+  ]
+  const regressionExpected = [
+    { stepName: 'pipeline-execution', type: 'start' },
+    { stepName: 'install-uv-app', type: 'start' },
+    { stepName: 'lint-frontend', type: 'start' },
+    { stepName: 'lint-frontend', type: 'line' },
+    { stepName: 'lint-frontend', type: 'success' },
+    { stepName: 'install-uv-app', type: 'failure' },
+    { stepName: 'install-uv-app', type: 'failure' },
+    { stepName: 'install-uv-app', type: 'success' },
+    { stepName: 'install-app', type: 'start' },
+    { stepName: 'install-app', type: 'line' },
+    { stepName: 'install-app', type: 'success' },
+    { stepName: 'lint-lock-check-app', type: 'start' },
+    { stepName: 'lint-ruff-app', type: 'start' },
+    { stepName: 'lint-mypy-app', type: 'start' },
+    { stepName: 'lint-lock-check-app', type: 'failure' },
+    { stepName: 'lint-lock-check-app', type: 'success' },
+    { stepName: 'lint-ruff-app', type: 'line' },
+    { stepName: 'lint-ruff-app', type: 'success' },
+    { stepName: 'lint-mypy-app', type: 'line' },
+    { stepName: 'lint-mypy-app', type: 'success' },
+    { stepName: 'lint-app', type: 'start' },
+    { stepName: 'lint-app', type: 'line' },
+    { stepName: 'lint-app', type: 'success' },
+    { stepName: 'lint', type: 'start' },
+    { stepName: 'lint', type: 'line' },
+    { stepName: 'lint', type: 'success' },
+    { stepName: 'pipeline-execution', type: 'success' },
+  ]
+  it('matches expected output objects for aspire lint lines', () => {
+    regressionLines.forEach((line, i) => {
+      const events = parseLogLine(line, ref)
+      expect(events.length).toBe(1)
+      const event = events[0]
+      expect({ stepName: event.stepName, type: event.type }).toEqual(regressionExpected[i])
+    })
+  })
+})
+
