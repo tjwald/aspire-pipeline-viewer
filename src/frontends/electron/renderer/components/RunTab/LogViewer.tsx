@@ -16,6 +16,9 @@ export interface LogViewerProps {
  * Basic ANSI color code to CSS span conversion
  */
 function parseAnsi(text: string): React.ReactNode[] {
+  // Safety check for undefined/null text
+  if (!text) return [text]
+  
   const result: React.ReactNode[] = []
   // eslint-disable-next-line no-control-regex
   const ansiRegex = /\x1b\[([0-9;]*)m/g
@@ -135,7 +138,15 @@ export function LogViewer({ logs, selectedStepId, autoScroll = true }: LogViewer
   }, [selectedStepId])
 
   const formatTime = (timestamp: number): string => {
+    // Handle invalid timestamps
+    if (!timestamp || isNaN(timestamp)) {
+      return new Date().toLocaleTimeString('en-US', { hour12: false })
+    }
     const date = new Date(timestamp)
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return new Date().toLocaleTimeString('en-US', { hour12: false })
+    }
     return date.toLocaleTimeString('en-US', { hour12: false })
   }
 

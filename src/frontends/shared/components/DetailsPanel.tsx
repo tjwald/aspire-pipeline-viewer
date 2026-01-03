@@ -5,10 +5,12 @@ import '../styles/details.css'
 type DetailsPanelProps = {
   graph: PipelineGraph
   selectedStepId?: string
+  onRunStep?: (stepId: string) => void
 }
 
-export function DetailsPanel({ graph, selectedStepId }: DetailsPanelProps) {
+export function DetailsPanel({ graph, selectedStepId, onRunStep }: DetailsPanelProps) {
   const step: PipelineStep | undefined = graph.steps.find((s) => s.id === selectedStepId)
+  const isElectron = typeof window !== 'undefined' && window.electronAPI !== undefined
 
   if (!step) {
     return (
@@ -23,7 +25,19 @@ export function DetailsPanel({ graph, selectedStepId }: DetailsPanelProps) {
 
   return (
     <div className="details-panel">
-      <div className="details-header">Step Details</div>
+      <div className="details-header">
+        <span>Step Details</span>
+        {isElectron && onRunStep && (
+          <button
+            className="run-step-btn"
+            onClick={() => onRunStep(step.id)}
+            title="Run this step"
+            data-testid="run-step-btn"
+          >
+            ▶️ Run
+          </button>
+        )}
+      </div>
       <div className="details-content">
         <div className="detail-section">
           <div className="detail-label">Name</div>
@@ -66,6 +80,26 @@ export function DetailsPanel({ graph, selectedStepId }: DetailsPanelProps) {
           </div>
         )}
       </div>
+      <style>{`
+        .details-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .run-step-btn {
+          padding: 4px 12px;
+          background: #0e639c;
+          color: #fff;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 12px;
+          font-weight: 600;
+        }
+        .run-step-btn:hover {
+          background: #1177bb;
+        }
+      `}</style>
     </div>
   )
 }

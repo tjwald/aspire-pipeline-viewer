@@ -44,6 +44,8 @@ function getTransitiveDependencies(graph: PipelineGraph, stepId: string): Set<st
 
 export function RunView({ runId, graph, targetStepId, initialName }: RunViewProps) {
   const [selectedStepId, setSelectedStepId] = useState<string | undefined>()
+  const [splitPosition, setSplitPosition] = useState(50) // percentage
+  const [isDragging, setIsDragging] = useState(false)
   const [runState, setRunState] = useState<RunState>(() => {
     const visibleSteps = getTransitiveDependencies(graph, targetStepId)
     const initialStatuses: NodeStatusesMap = {}
@@ -146,6 +148,34 @@ export function RunView({ runId, graph, targetStepId, initialName }: RunViewProp
     setSelectedStepId((prev) => (prev === stepId ? undefined : stepId))
   }
 
+  const handleMouseDown = () => {
+    setIsDragging(true)
+  }
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!isDragging) return
+    const container = document.querySelector('.run-content')
+    if (!container) return
+    const rect = container.getBoundingClientRect()
+    const newPosition = ((e.clientX - rect.left) / rect.width) * 100
+    setSplitPosition(Math.max(20, Math.min(80, newPosition)))
+  }, [isDragging])
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false)
+  }, [])
+
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove)
+      document.addEventListener('mouseup', handleMouseUp)
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove)
+        document.removeEventListener('mouseup', handleMouseUp)
+      }
+    }
+  }, [isDragging, handleMouseMove, handleMouseUp])
+
   // Status badge colors
   const statusBadgeStyle: Record<string, React.CSSProperties> = {
     running: { background: '#f59e0b', color: '#000' },
@@ -189,7 +219,7 @@ export function RunView({ runId, graph, targetStepId, initialName }: RunViewProp
       </header>
 
       <div className="run-content">
-        <div className="run-graph-panel">
+        <div className="run-graph-panel" style={{ width: `${splitPosition}%` }}>
           <RunGraphWithBadges
             graph={filteredGraph}
             nodeStatuses={runState.nodeStatuses}
@@ -197,7 +227,12 @@ export function RunView({ runId, graph, targetStepId, initialName }: RunViewProp
             onSelectStep={handleNodeClick}
           />
         </div>
-        <div className="run-log-panel">
+        <div
+          className="run-splitter"
+          onMouseDown={handleMouseDown}
+          style={{ cursor: isDragging ? 'col-resize' : 'col-resize' }}
+        />
+        <div className="run-log-panel" style={{ width: `${100 - splitPosition}%` }}>
           <LogViewer logs={runState.logs} selectedStepId={selectedStepId} />
         </div>
       </div>
@@ -207,6 +242,7 @@ export function RunView({ runId, graph, targetStepId, initialName }: RunViewProp
           display: flex;
           flex-direction: column;
           height: 100%;
+          width: 100%;
           background: #1e1e1e;
         }
         .run-header {
@@ -273,17 +309,28 @@ export function RunView({ runId, graph, targetStepId, initialName }: RunViewProp
           flex: 1;
           display: flex;
           overflow: hidden;
+          position: relative;
+          width: 100%;
         }
         .run-graph-panel {
-          flex: 1;
-          min-width: 300px;
+          min-width: 200px;
           overflow: hidden;
-          border-right: 1px solid #3c3c3c;
+          flex-shrink: 0;
+        }
+        .run-splitter {
+          width: 4px;
+          background: #3c3c3c;
+          cursor: col-resize;
+          flex-shrink: 0;
+          user-select: none;
+        }
+        .run-splitter:hover {
+          background: #0e639c;
         }
         .run-log-panel {
-          flex: 1;
-          min-width: 300px;
+          min-width: 200px;
           overflow: hidden;
+          flex: 1;
         }
       `}</style>
     </div>

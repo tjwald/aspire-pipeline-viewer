@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { RunView } from './RunView'
 import type { PipelineGraph } from '@aspire-pipeline-viewer/core'
 
@@ -11,50 +11,39 @@ export interface RunTab {
 
 export interface RunTabContainerProps {
   graph: PipelineGraph
-  initialTabs?: RunTab[]
+  tabs: RunTab[]
   onCloseTab?: (tabId: string) => void
 }
 
-export function RunTabContainer({ graph, initialTabs = [], onCloseTab }: RunTabContainerProps) {
-  const [tabs, setTabs] = useState<RunTab[]>(initialTabs)
-  const [activeTabId, setActiveTabId] = useState<string | undefined>(initialTabs[0]?.id)
+export function RunTabContainer({ graph, tabs, onCloseTab }: RunTabContainerProps) {
+  const [activeTabId, setActiveTabId] = useState<string | undefined>(tabs[0]?.id)
+
+  // When a new tab is added, automatically switch to it
+  useEffect(() => {
+    if (tabs.length > 0 && !tabs.find(t => t.id === activeTabId)) {
+      // Active tab no longer exists, switch to the last tab (most recent)
+      setActiveTabId(tabs[tabs.length - 1].id)
+    }
+  }, [tabs, activeTabId])
 
   const handleCloseTab = useCallback(
     (tabId: string, e?: React.MouseEvent) => {
       e?.stopPropagation()
-      setTabs((prev) => {
-        const newTabs = prev.filter((t) => t.id !== tabId)
-        // If we're closing the active tab, switch to another one
-        if (activeTabId === tabId && newTabs.length > 0) {
-          const closedIndex = prev.findIndex((t) => t.id === tabId)
-          const newActiveIndex = Math.min(closedIndex, newTabs.length - 1)
-          setActiveTabId(newTabs[newActiveIndex]?.id)
-        } else if (newTabs.length === 0) {
-          setActiveTabId(undefined)
-        }
-        return newTabs
-      })
+      
+      // If we're closing the active tab, switch to another one
+      if (activeTabId === tabId && tabs.length > 1) {
+        const closedIndex = tabs.findIndex((t) => t.id === tabId)
+        const newTabs = tabs.filter((t) => t.id !== tabId)
+        const newActiveIndex = Math.min(closedIndex, newTabs.length - 1)
+        setActiveTabId(newTabs[newActiveIndex]?.id)
+      } else if (tabs.length === 1) {
+        setActiveTabId(undefined)
+      }
+      
       onCloseTab?.(tabId)
     },
-    [activeTabId, onCloseTab]
+    [activeTabId, tabs, onCloseTab]
   )
-
-  // Internal addTab - will be exposed via ref or callback in Phase 5
-  const _addTab = useCallback((runId: string, targetStepId: string, name?: string) => {
-    const tabId = `tab-${Date.now()}`
-    const newTab: RunTab = {
-      id: tabId,
-      runId,
-      targetStepId,
-      name: name || `Run ${targetStepId}`,
-    }
-    setTabs((prev) => [...prev, newTab])
-    setActiveTabId(tabId)
-    return tabId
-  }, [])
-  
-  // Keep reference for future use
-  void _addTab
 
   const activeTab = tabs.find((t) => t.id === activeTabId)
 
@@ -116,7 +105,7 @@ export function RunTabContainer({ graph, initialTabs = [], onCloseTab }: RunTabC
       <div className="run-tab-content" data-testid="run-tab-content">
         {activeTab && (
           <RunView
-            key={activeTab.runId}
+            key={activeTab.id}
             runId={activeTab.runId}
             graph={graph}
             targetStepId={activeTab.targetStepId}
@@ -129,6 +118,7 @@ export function RunTabContainer({ graph, initialTabs = [], onCloseTab }: RunTabC
           display: flex;
           flex-direction: column;
           height: 100%;
+          width: 100%;
           background: #1e1e1e;
         }
         .run-tab-bar {

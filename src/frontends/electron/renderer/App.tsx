@@ -65,8 +65,8 @@ export default function App() {
     }
   }, [])
 
-  // Handler to start a run (Electron only) - will be wired in Phase 5
-  const _handleStartRun = useCallback(
+  // Handler to start a run (Electron only)
+  const handleStartRun = useCallback(
     async (stepId: string) => {
       if (!isElectron || !window.electronAPI?.runStep) {
         console.warn('Run functionality is only available in Electron')
@@ -82,9 +82,6 @@ export default function App() {
     },
     [addRunTab]
   )
-  
-  // Export for Phase 5 integration
-  void _handleStartRun
 
   if (!graph) {
     return (
@@ -156,7 +153,7 @@ export default function App() {
               }}
               data-testid="view-mode-runs"
             >
-              ▶️ Runs {runTabs.length > 0 && `(${runTabs.length})`}
+              ▶️ Runs {runTabs?.length > 0 && `(${runTabs.length})`}
             </button>
           </div>
         )}
@@ -171,17 +168,22 @@ export default function App() {
                   selectedStepId={selectedStepId}
                   onSelectStep={setSelectedStepId}
                   visibleStepIds={visibleStepIds}
+                  onRunStep={isElectron ? handleStartRun : undefined}
                 />
               </ErrorBoundary>
               <ErrorBoundary section="Details Panel">
-                <DetailsPanel graph={graph} selectedStepId={selectedStepId} />
+                <DetailsPanel
+                  graph={graph}
+                  selectedStepId={selectedStepId}
+                  onRunStep={isElectron ? handleStartRun : undefined}
+                />
               </ErrorBoundary>
             </>
           ) : (
             <ErrorBoundary section="Run Tabs">
               <RunTabContainer
                 graph={graph}
-                initialTabs={runTabs}
+                tabs={runTabs}
                 onCloseTab={removeRunTab}
               />
             </ErrorBoundary>

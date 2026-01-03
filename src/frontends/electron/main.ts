@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog, type IpcMainInvokeEvent } from 'el
 import path from 'path'
 import fs from 'fs'
 import { spawn } from 'child_process'
-import { validateDirectory, validateStepName } from '@aspire-pipeline-viewer/core'
+import { validateDirectory, validateStepName, type ParsedEvent } from '@aspire-pipeline-viewer/core'
 import { RunService } from './services/runService'
 
 let mainWindow: BrowserWindow | null = null
@@ -129,11 +129,7 @@ type IpcHandleFunction = (
 // Type for run event payload
 interface RunEventPayload {
   runId: string
-  event: {
-    type: string
-    text: string
-    timestamp: number
-  }
+  event: ParsedEvent
 }
 
 // Exported setup function for run-related IPC handlers and event forwarding.
@@ -162,8 +158,13 @@ function setupRunIpcHandlers(
     const win = getWindow()
     if (!win) return
     const { runId, event } = payload
-    // forward general output events
-    win.webContents.send('run-output', { runId, event })
+    // forward general output events - map ParsedEvent to RunOutputEvent structure
+    win.webContents.send('run-output', {
+      runId,
+      line: event.text,
+      stepName: event.stepName,
+      timestamp: event.timestamp
+    })
     // forward status-change for terminal statuses
     if (event && (event.type === 'success' || event.type === 'failure')) {
       win.webContents.send('run-status-change', { runId, status: event.type, event })
@@ -177,7 +178,9 @@ if (ipcMain && typeof ipcMain.handle === 'function') {
     // In test mode with fixture, return the fixture directory
     const testFixture = process.env.ASPIRE_TEST_FIXTURE
     if (testFixture) {
-      return path.dirname(testFixture)
+      const dir = path.dirname(testFixture)
+      runService.setWorkspaceDirectory(dir)
+      return dir
     }
 
     const result = await dialog.showOpenDialog(mainWindow!, {
@@ -185,6 +188,9 @@ if (ipcMain && typeof ipcMain.handle === 'function') {
       title: 'Select AppHost Directory',
     })
     if (result.canceled || result.filePaths.length === 0) return null
+    
+    // Set workspace directory in RunService
+    runService.setWorkspaceDirectory(result.filePaths[0])
     return result.filePaths[0]
   })
 

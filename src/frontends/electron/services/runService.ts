@@ -25,6 +25,7 @@ interface RunMeta {
 export class RunService extends EventEmitter implements IRunService {
   private runs = new Map<string, { proc?: ChildProcess; meta: RunMeta; writeStream?: fs.WriteStream }>()
   private baseDir: string
+  private workspaceDir?: string
 
   constructor(userDataDir?: string) {
     super()
@@ -36,6 +37,10 @@ export class RunService extends EventEmitter implements IRunService {
     }
   }
 
+  setWorkspaceDirectory(dir: string): void {
+    this.workspaceDir = dir
+  }
+
   async startRun(stepName: string): Promise<string> {
     const runId = `run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     const startedAt = Date.now()
@@ -45,8 +50,11 @@ export class RunService extends EventEmitter implements IRunService {
     // ensure directory
     fs.mkdirSync(path.dirname(logPath), { recursive: true })
 
-    // spawn process
-    const proc = spawn('aspire', ['do', stepName], { stdio: ['ignore', 'pipe', 'pipe'] })
+    // spawn process with workspace directory as cwd
+    const proc = spawn('aspire', ['do', stepName], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      cwd: this.workspaceDir || process.cwd()
+    })
 
     // open write stream
     const ws = fs.createWriteStream(logPath, { flags: 'a' })
