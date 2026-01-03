@@ -1,89 +1,77 @@
 import type { ParsedEvent } from './interfaces'
 
+const stripAnsi = (input: string) =>
+  input.replace(
+    // ANSI escape sequences
+    /\x1B\[[0-9;]*[A-Za-z]|\x1B\][0-9];.*?(\x07|\\)/g,
+    ""
+  );
+
 /**
  * Parse a single log line from aspire output and return zero-or-more ParsedEvent entries.
  * The parser is pure and takes an optional referenceDateMs so tests can assert deterministic timestamps.
  * This version does not use regex and is robust to spinner lines and malformed input.
  */
-export function parseLogLine(line: string, referenceDateMs?: number): ParsedEvent[] {
-  // Merge fragments split by cursor/escape codes
-  const mergeFragments = (input: string): string => {
-    // Remove ANSI escape/cursor codes except for newlines
-    const cleaned = input.replace(/\u001b\[[0-9;]*[A-Za-z]|\u001b\].*?\\|\u001b\[\?25[lh]|\u001b\[2[KA]|\u001b\[1A/g, '');
-    // Merge lines that are split by cursor movement
-    return cleaned.replace(/\n\s*→/g, ' →');
+export function parseLogLine(
+  raw: string,
+  referenceDateMs?: number
+): ParsedEvent | null {
+  if (!raw) return null;
+
+  const clean = stripAnsi(raw).trim();
+  if (!clean) return null;
+
+  const timePart = clean.slice(0, 8);
+  const isTime =
+    timePart.length === 8 &&
+    timePart[2] === ":" &&
+    timePart[5] === ":" &&
+    /^\d{2}:\d{2}:\d{2}$/.test(timePart);
+
+  if (isTime) {
+    const [hh, mm, ss] = timePart.split(":").map(Number);
+    const refMs = referenceDateMs ?? Date.now();
+    const ref = new Date(refMs);
+
+    const timestamp = new Date(
+      ref.getFullYear(),
+      ref.getMonth(),
+      ref.getDate(),
+      hh,
+      mm,
+      ss
+    ).getTime();
+
+    const openParen = clean.indexOf("(");
+    const closeParen = clean.indexOf(")", openParen + 1);
+
+    if (openParen !== -1 && closeParen !== -1) {
+      const stepName = clean.slice(openParen + 1, closeParen).trim();
+      const after = clean.slice(closeParen + 1).trim();
+
+      const symbol = after[0];
+      const type =
+        symbol === "→"
+          ? "start"
+          : symbol === "i"
+          ? "line"
+          : symbol === "✓"
+          ? "success"
+          : symbol === "✗"
+          ? "failure"
+          : null;
+
+      if (type) {
+        const text = after.slice(1).trim();
+        return { timestamp, stepName, type, text };
+      }
+    }
+  }
+
+  // Fallback: unstructured line
+  return {
+    timestamp: referenceDateMs ?? Date.now(),
+    type: "line",
+    text: clean,
   };
-  const merged = mergeFragments(line ?? '');
-  const raw = merged.replace(/\r$/, '').trim();
-  if (!raw) return [];
-
-  // Ignore spinner-only lines (those with only spinner unicode or ANSI codes)
-  const spinnerChars = ['⠋','⠙','⠚','⠞','⠖','⠦','⠴','⠲','⠳','⠓']
-  const ansiRegex = /\u001b\[[0-9;]*m|\u001b\].*?\\|\u001b\[\?25[lh]/g
-  const cleaned = raw.replace(ansiRegex, '').trim()
-  if (!cleaned || spinnerChars.some(c => cleaned.startsWith(c))) return []
-
-  // Helper to parse time from the start of a line
-  function parseTime(str: string): { timestamp: number | null, rest: string } {
-    // Find time in format HH:MM:SS at start
-    const timeMatch = str.match(/^(\d{2}):(\d{2}):(\d{2})\s+/)
-    if (!timeMatch) return { timestamp: null, rest: str }
-    const [_, hh, mm, ss] = timeMatch
-    const ref = new Date(referenceDateMs ?? Date.now())
-    const year = ref.getUTCFullYear()
-    const month = ref.getUTCMonth()
-    const day = ref.getUTCDate()
-    const timestamp = Date.UTC(year, month, day, Number(hh), Number(mm), Number(ss))
-    return { timestamp, rest: str.slice(timeMatch[0].length) }
-  }
-
-  // Helper to extract step name and event type
-  function parseStepAndType(str: string): { stepName?: string, type: ParsedEvent['type'] } {
-    // Find (step-name) marker, but allow for lines that end right after the step
-    const stepStart = str.indexOf('(')
-    const stepEnd = str.indexOf(')', stepStart);
-    if (stepStart !== -1 && stepEnd !== -1) {
-      const stepName = str.slice(stepStart + 1, stepEnd);
-      const afterStep = str.slice(stepEnd + 1).trim();
-      // If nothing after the step, still emit stepName
-      if (!afterStep) return { stepName, type: 'line' };
-      // Accept lines like '(step) i [INF] ...' as generic step lines
-      if (afterStep.startsWith('→ Starting')) return { stepName, type: 'start' };
-      if (afterStep.includes('✓')) return { stepName, type: 'success' };
-      if (afterStep.includes('✗')) return { stepName, type: 'failure' };
-      // If it starts with 'i [INF]' or similar, treat as 'line' with stepName
-      if (/^(i\s*\[INF\]|i\s*\[ERR\]|i\s*\[WRN\])/.test(afterStep)) return { stepName, type: 'line' };
-      return { stepName, type: 'line' };
-    }
-    // Try to extract stepName from lines like 'stepName) ...' (missing opening paren)
-    const fallbackStepMatch = str.match(/^(\w[\w-]*)\)\s*(.*)$/);
-    if (fallbackStepMatch) {
-      const stepName = fallbackStepMatch[1];
-      const afterStep = fallbackStepMatch[2].trim();
-      if (!afterStep) return { stepName, type: 'line' };
-      if (afterStep.startsWith('→ Starting')) return { stepName, type: 'start' };
-      if (afterStep.includes('✓')) return { stepName, type: 'success' };
-      if (afterStep.includes('✗')) return { stepName, type: 'failure' };
-      if (/^(i\s*\[INF\]|i\s*\[ERR\]|i\s*\[WRN\])/.test(afterStep)) return { stepName, type: 'line' };
-      return { stepName, type: 'line' };
-    }
-    return { type: 'line' };
-  }
-
-  // Main parse logic
-  let timestamp: number | null = null
-  let rest = cleaned
-  // Try to parse time
-  const timeResult = parseTime(rest)
-  timestamp = timeResult.timestamp
-  rest = timeResult.rest
-
-  // Try to parse step and type
-  const { stepName, type } = parseStepAndType(rest)
-
-  // If no timestamp, fallback to Date.now()
-  const ts = timestamp ?? Date.now()
-
-  // Only emit events for lines with content
-  return [{ timestamp: ts, stepName, type, text: raw }]
 }

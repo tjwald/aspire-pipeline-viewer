@@ -1,4 +1,4 @@
-import { IRunService, ParsedEvent, ParsedEventType } from '@aspire-pipeline-viewer/core';
+import { IRunService, ParsedEvent } from '@aspire-pipeline-viewer/core';
 import { spawn, ChildProcess } from 'child_process';
 import { parseLogLine } from '@aspire-pipeline-viewer/core';
 
@@ -7,6 +7,10 @@ export class RunServiceCLI implements IRunService {
   private currentProc: ChildProcess | null = null;
   private runId: string = '';
   private cwd: string;
+
+  // Buffers for partial lines
+  private stdoutBuffer = '';
+  private stderrBuffer = '';
 
   constructor(cwd: string) {
     this.cwd = cwd;
@@ -35,30 +39,60 @@ export class RunServiceCLI implements IRunService {
   async startRun(stepName: string): Promise<string> {
     this.runId = `${stepName}-${Date.now()}`;
     const aspireCmd = process.platform === 'win32' ? 'aspire.exe' : 'aspire';
+
     this.currentProc = spawn(aspireCmd, ['do', stepName], {
       cwd: this.cwd,
       stdio: ['pipe', 'pipe', 'pipe'],
     });
 
+    // --- STDOUT ---
     this.currentProc.stdout?.on('data', (data) => {
-      const lines = data.toString().split(/\r?\n/);
-      for (const line of lines) {
-        const events = parseLogLine(line);
-        for (const event of events) {
+      this.stdoutBuffer += data.toString();
+
+      let newlineIndex;
+      while ((newlineIndex = this.stdoutBuffer.indexOf('\n')) >= 0) {
+        const line = this.stdoutBuffer.slice(0, newlineIndex);
+        this.stdoutBuffer = this.stdoutBuffer.slice(newlineIndex + 1);
+
+        const event = parseLogLine(line);
+        if (event) {
           this.emit('event', { runId: this.runId, event });
         }
       }
     });
 
+    // --- STDERR ---
     this.currentProc.stderr?.on('data', (data) => {
-      const lines = data.toString().split(/\r?\n/);
-      for (const line of lines) {
-        const events = parseLogLine(line);
-        for (const event of events) {
+      this.stderrBuffer += data.toString();
+
+      let newlineIndex;
+      while ((newlineIndex = this.stderrBuffer.indexOf('\n')) >= 0) {
+        const line = this.stderrBuffer.slice(0, newlineIndex);
+        this.stderrBuffer = this.stderrBuffer.slice(newlineIndex + 1);
+
+        const event = parseLogLine(line);
+        if (event) {
           this.emit('event', { runId: this.runId, event });
         }
       }
     });
+
+    // Flush remaining partial lines on exit
+    const flushBuffers = () => {
+      if (this.stdoutBuffer.length > 0) {
+        const event = parseLogLine(this.stdoutBuffer);
+        if (event) this.emit('event', { runId: this.runId, event });
+        this.stdoutBuffer = '';
+      }
+      if (this.stderrBuffer.length > 0) {
+        const event = parseLogLine(this.stderrBuffer);
+        if (event) this.emit('event', { runId: this.runId, event });
+        this.stderrBuffer = '';
+      }
+    };
+
+    this.currentProc.on('close', flushBuffers);
+    this.currentProc.on('exit', flushBuffers);
 
     return this.runId;
   }
@@ -75,8 +109,6 @@ export class RunServiceCLI implements IRunService {
   }
 
   async getRunHistory(): Promise<Array<{ runId: string; name?: string; startedAt: number }>> {
-    // No-op for CLI
     return [];
   }
 }
-
