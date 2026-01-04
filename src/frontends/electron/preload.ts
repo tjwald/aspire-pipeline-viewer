@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
+import type { ParsedEvent } from '@aspire-pipeline-viewer/core'
 
 const electronAPI = {
   selectApphostDirectory: () => ipcRenderer.invoke('select-apphost-directory'),
@@ -18,8 +19,8 @@ const electronAPI = {
   runStep: (runId?: string) => ipcRenderer.invoke('run-step', runId),
   killRun: (runId: string) => ipcRenderer.invoke('kill-run', runId),
   renameRun: (runId: string, newName: string) => ipcRenderer.invoke('rename-run', runId, newName),
-  onRunOutput: (cb: (event: { runId: string; line: string; timestamp: number; stepName?: string }) => void) => {
-    const handler = (_e: IpcRendererEvent, data: { runId: string; line: string; timestamp: number; stepName?: string }) => cb(data)
+  onRunOutput: (cb: (event: { runId: string; event: ParsedEvent }) => void) => {
+    const handler = (_e: IpcRendererEvent, data: { runId: string; event: ParsedEvent }) => cb(data)
     ipcRenderer.on('run-output', handler)
     return () => ipcRenderer.removeListener('run-output', handler)
   },

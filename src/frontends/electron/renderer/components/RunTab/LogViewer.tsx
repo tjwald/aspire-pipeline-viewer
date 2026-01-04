@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react'
+import type { ParsedEventType } from '@aspire-pipeline-viewer/core'
 
 export interface LogLine {
   timestamp: number
   text: string
   stepName?: string
+  type?: ParsedEventType
 }
 
 export interface LogViewerProps {

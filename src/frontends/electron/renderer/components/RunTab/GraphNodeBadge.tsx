@@ -1,14 +1,13 @@
 import React from 'react'
-
-export type StepStatus = 'pending' | 'running' | 'success' | 'failed' | 'skipped'
+import { ExecutionStatus } from '@aspire-pipeline-viewer/core'
 
 export interface GraphNodeBadgeProps {
-  status: StepStatus
+  status: ExecutionStatus
   x: number
   y: number
 }
 
-const statusConfig: Record<StepStatus, { symbol: string; color: string; bgColor: string }> = {
+const statusConfig: Record<ExecutionStatus, { symbol: string; color: string; bgColor: string }> = {
   pending: { symbol: '○', color: '#858585', bgColor: 'rgba(133,133,133,0.2)' },
   running: { symbol: '◉', color: '#f59e0b', bgColor: 'rgba(245,158,11,0.2)' },
   success: { symbol: '✓', color: '#22c55e', bgColor: 'rgba(34,197,94,0.2)' },
@@ -19,14 +18,14 @@ const statusConfig: Record<StepStatus, { symbol: string; color: string; bgColor:
 export function GraphNodeBadge({ status, x, y }: GraphNodeBadgeProps) {
   // Implementation copied from the previous inline graph-node-badge
   // Used in GraphView.tsx before refactor
-  const statusBadgeColors: Record<StepStatus, string> = {
+  const statusBadgeColors: Record<ExecutionStatus, string> = {
     pending: '#bdbdbd',
     running: '#2196f3',
     success: '#43a047',
     failed: '#e53935',
     skipped: '#bdbdbd',
   }
-  const statusBadgeIcons: Record<StepStatus, string> = {
+  const statusBadgeIcons: Record<ExecutionStatus, string> = {
     pending: '⏳',
     running: '▶️',
     success: '✔️',
@@ -61,5 +60,5 @@ export function GraphNodeBadge({ status, x, y }: GraphNodeBadgeProps) {
 }
 
 export interface NodeStatusesMap {
-  [stepId: string]: StepStatus
+  [stepId: string]: ExecutionStatus
 }

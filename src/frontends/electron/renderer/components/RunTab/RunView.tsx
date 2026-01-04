@@ -2,7 +2,8 @@ import React, { useMemo, useEffect, useState, useCallback } from 'react'
 import { GraphView } from '../../../../shared/components/GraphView'
 import { LogViewer, type LogLine } from './LogViewer'
 import { Sidebar } from '../../../../shared/components/Sidebar'
-import type { NodeStatusesMap, StepStatus } from './GraphNodeBadge'
+import type { NodeStatusesMap } from './GraphNodeBadge'
+import { ExecutionStatus, ParsedEvent } from '@aspire-pipeline-viewer/core'
 import type { PipelineGraph } from '@aspire-pipeline-viewer/core'
 
 export interface RunViewProps {
@@ -51,7 +52,7 @@ export function RunView({ runId, graph, targetStepId, initialName }: RunViewProp
     const visibleSteps = getTransitiveDependencies(graph, targetStepId)
     const initialStatuses: NodeStatusesMap = {}
     visibleSteps.forEach((id) => {
-      initialStatuses[id] = 'pending'
+      initialStatuses[id] = ExecutionStatus.Pending
     })
     return {
       status: 'running',
@@ -109,31 +110,38 @@ export function RunView({ runId, graph, targetStepId, initialName }: RunViewProp
     }
 
     const unsubOutput = window.electronAPI.onRunOutput(
-      (data: { runId: string; line: string; stepName?: string; timestamp: number }) => {
+      (data: { runId: string; event: ParsedEvent }) => {
         if (data.runId !== runId) return
+        const event = data.event
         // Debug: log raw and processed log info to the console for troubleshooting
         // eslint-disable-next-line no-console
         console.log('[RunView] Log received:', {
-          raw: data,
-          strippedStepName: data.stepName ? stripAnsi(data.stepName) : undefined,
-          mappedStepId: data.stepName ? stepNameToId[stripAnsi(data.stepName)] : undefined
+          raw: event,
+          strippedStepName: event.stepName ? stripAnsi(event.stepName) : undefined,
+          mappedStepId: event.stepName ? stepNameToId[stripAnsi(event.stepName)] : undefined
         });
         // Attach stepId to log for filtering (robust to ANSI/case)
-        let stepId = data.stepName && stepNameToId[stripAnsi(data.stepName)]
+        let stepId = event.stepName && stepNameToId[stripAnsi(event.stepName)]
         // Fallback: if not found, try direct match (legacy)
-        if (!stepId && data.stepName) {
-          const fallback = Object.entries(stepNameToId).find(([k]) => data.stepName && k.includes(stripAnsi(data.stepName!)))
+        if (!stepId && event.stepName) {
+          const fallback = Object.entries(stepNameToId).find(([k]) => event.stepName && k.includes(stripAnsi(event.stepName!)))
           if (fallback) stepId = fallback[1]
         }
         setRunState((prev) => {
-          // If we have a stepId, mark it as running if it was pending
+          // Update status based on event type
           let updatedStatuses = { ...prev.nodeStatuses }
-          if (stepId && updatedStatuses[stepId] === 'pending') {
-            updatedStatuses[stepId] = 'running'
+          if (stepId) {
+            if (event.type === 'start' && updatedStatuses[stepId] === ExecutionStatus.Pending) {
+              updatedStatuses[stepId] = ExecutionStatus.Running
+            } else if (event.type === 'success') {
+              updatedStatuses[stepId] = ExecutionStatus.Success
+            } else if (event.type === 'failure') {
+              updatedStatuses[stepId] = ExecutionStatus.Failed
+            }
           }
           return {
             ...prev,
-            logs: [...prev.logs, { timestamp: data.timestamp, text: data.line, stepName: data.stepName, stepId }],
+            logs: [...prev.logs, { timestamp: event.timestamp, text: event.text, stepName: event.stepName, stepId, type: event.type }],
             nodeStatuses: updatedStatuses,
           }
         })
@@ -410,8 +418,8 @@ function RunGraphWithBadges({ graph, nodeStatuses, selectedStepId, onSelectStep 
   )
 }
 
-function StatusIndicator({ status }: { status: StepStatus }) {
-  const config = {
+function StatusIndicator({ status }: { status: ExecutionStatus }) {
+  const config: Record<ExecutionStatus, { symbol: string; color: string }> = {
     pending: { symbol: '○', color: '#858585' },
     running: { symbol: '◉', color: '#f59e0b' },
     success: { symbol: '✓', color: '#22c55e' },

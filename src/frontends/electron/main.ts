@@ -158,12 +158,10 @@ function setupRunIpcHandlers(
     const win = getWindow()
     if (!win) return
     const { runId, event } = payload
-    // forward general output events - map ParsedEvent to RunOutputEvent structure
+    // forward general output events - send ParsedEvent directly
     win.webContents.send('run-output', {
       runId,
-      line: event.text,
-      stepName: event.stepName,
-      timestamp: event.timestamp
+      event
     })
     // forward status-change for terminal statuses
     if (event && (event.type === 'success' || event.type === 'failure')) {
