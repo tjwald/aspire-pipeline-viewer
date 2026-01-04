@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import type { PipelineGraph } from '@aspire-pipeline-viewer/core'
 import { calculateHierarchicalPositions, getResourceColor, wrapStepName, isAggregator, type CenterLane } from '../utils'
 import { useZoomPan } from '../hooks/useZoomPan'
+import { GraphNodeBadge } from '../../electron/renderer/components/RunTab/GraphNodeBadge'
 import '../styles/graph.css'
 
 export type StepStatus = 'pending' | 'running' | 'success' | 'failed' | 'skipped'
@@ -376,24 +377,7 @@ export function GraphView({ graph, selectedStepId, onSelectStep, visibleStepIds,
                 key={`${step.id}-${status}`}
                 transform={`translate(${pos.x + 70},${pos.y - 35})`}
               >
-                <title>{status.charAt(0).toUpperCase() + status.slice(1)}</title>
-                <circle
-                  r="14"
-                  fill={statusBadgeColors[status]}
-                  stroke="#222"
-                  strokeWidth="2"
-                  filter="url(#shadow)"
-                />
-                <text
-                  x="0"
-                  y="5"
-                  textAnchor="middle"
-                  fontSize="16"
-                  fontWeight="bold"
-                  fill="#fff"
-                >
-                  {statusBadgeIcons[status]}
-                </text>
+                <GraphNodeBadge status={status} x={0} y={0} />
               </g>
             )}
             <text x={pos.x} y={pos.y - 8} textAnchor="middle" fontSize={12} fontWeight="bold" fill="#ffffff">
@@ -456,24 +440,7 @@ export function GraphView({ graph, selectedStepId, onSelectStep, visibleStepIds,
                 key={`${step.id}-${status}`}
                 transform={`translate(${pos.x + size * 0.7},${pos.y - size * 0.7})`}
               >
-                <title>{status.charAt(0).toUpperCase() + status.slice(1)}</title>
-                <circle
-                  r="14"
-                  fill={statusBadgeColors[status]}
-                  stroke="#222"
-                  strokeWidth="2"
-                  filter="url(#shadow)"
-                />
-                <text
-                  x="0"
-                  y="5"
-                  textAnchor="middle"
-                  fontSize="16"
-                  fontWeight="bold"
-                  fill="#fff"
-                >
-                  {statusBadgeIcons[status]}
-                </text>
+                <GraphNodeBadge status={status} x={0} y={0} />
               </g>
             )}
             {/* Icon */}

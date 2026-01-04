@@ -125,10 +125,18 @@ export function RunView({ runId, graph, targetStepId, initialName }: RunViewProp
           const fallback = Object.entries(stepNameToId).find(([k]) => data.stepName && k.includes(stripAnsi(data.stepName!)))
           if (fallback) stepId = fallback[1]
         }
-        setRunState((prev) => ({
-          ...prev,
-          logs: [...prev.logs, { timestamp: data.timestamp, text: data.line, stepName: data.stepName, stepId }],
-        }))
+        setRunState((prev) => {
+          // If we have a stepId, mark it as running if it was pending
+          let updatedStatuses = { ...prev.nodeStatuses }
+          if (stepId && updatedStatuses[stepId] === 'pending') {
+            updatedStatuses[stepId] = 'running'
+          }
+          return {
+            ...prev,
+            logs: [...prev.logs, { timestamp: data.timestamp, text: data.line, stepName: data.stepName, stepId }],
+            nodeStatuses: updatedStatuses,
+          }
+        })
       }
     )
 

@@ -17,44 +17,45 @@ const statusConfig: Record<StepStatus, { symbol: string; color: string; bgColor:
 }
 
 export function GraphNodeBadge({ status, x, y }: GraphNodeBadgeProps) {
-  const config = statusConfig[status]
-  const size = 20
-
+  // Implementation copied from the previous inline graph-node-badge
+  // Used in GraphView.tsx before refactor
+  const statusBadgeColors: Record<StepStatus, string> = {
+    pending: '#bdbdbd',
+    running: '#2196f3',
+    success: '#43a047',
+    failed: '#e53935',
+    skipped: '#bdbdbd',
+  }
+  const statusBadgeIcons: Record<StepStatus, string> = {
+    pending: '⏳',
+    running: '▶️',
+    success: '✔️',
+    failed: '❌',
+    skipped: '⏭️',
+  }
   return (
-    <g className={`graph-node-badge status-${status}`} data-testid={`badge-${status}`}>
-      <circle cx={x} cy={y} r={size / 2} fill={config.bgColor} stroke={config.color} strokeWidth={1.5} />
+    <g className={`graph-node-badge status-${status}`} data-testid={`badge-${status}`}
+      >
+      <title>{status.charAt(0).toUpperCase() + status.slice(1)}</title>
+      <circle
+        cx={x}
+        cy={y}
+        r={14}
+        fill={statusBadgeColors[status]}
+        stroke="#222"
+        strokeWidth={2}
+        filter="url(#shadow)"
+      />
       <text
         x={x}
-        y={y}
+        y={y + 5}
         textAnchor="middle"
-        dominantBaseline="central"
-        fontSize={12}
+        fontSize="16"
         fontWeight="bold"
-        fill={config.color}
+        fill="#fff"
       >
-        {config.symbol}
+        {statusBadgeIcons[status]}
       </text>
-      {status === 'running' && (
-        <circle
-          cx={x}
-          cy={y}
-          r={size / 2 + 2}
-          fill="none"
-          stroke={config.color}
-          strokeWidth={2}
-          strokeDasharray="4 4"
-          className="running-pulse"
-        >
-          <animateTransform
-            attributeName="transform"
-            type="rotate"
-            from={`0 ${x} ${y}`}
-            to={`360 ${x} ${y}`}
-            dur="2s"
-            repeatCount="indefinite"
-          />
-        </circle>
-      )}
     </g>
   )
 }
