@@ -162,7 +162,7 @@ export class RunService extends EventEmitter implements IRunService {
     if (!rec) return;
 
     try {
-      rec.proc?.kill();
+      rec.proc?.kill('SIGTERM');
     } catch {
       /* ignore */
     }

@@ -165,7 +165,7 @@ function setupRunIpcHandlers(
     })
     // forward status-change for terminal statuses
     if (event && (event.type === 'success' || event.type === 'failure')) {
-      win.webContents.send('run-status-change', { runId, status: event.type, event })
+      win.webContents.send('run-status-change', { runId, status: event.type, nodeStatuses: undefined })
     }
   })
 }

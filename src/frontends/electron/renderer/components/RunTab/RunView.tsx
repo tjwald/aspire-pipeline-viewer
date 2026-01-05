@@ -149,18 +149,15 @@ export function RunView({ runId, graph, targetStepId, initialName }: RunViewProp
     )
 
     const unsubStatus = window.electronAPI.onRunStatusChange(
-      (data: { runId: string; status: 'running' | 'success' | 'failed'; nodeStatuses: NodeStatusesMap }) => {
+      (data: {
+  runId: string
+  status: 'running' | 'success' | 'failed'
+}) => {
         if (data.runId !== runId) return
-        // Remap nodeStatuses keys if needed (robust to ANSI/case)
-        const remapped: NodeStatusesMap = {}
-        Object.entries(data.nodeStatuses).forEach(([k, v]) => {
-          const id = graph.steps.find(s => s.id === k || stripAnsi(s.name) === stripAnsi(k))?.id
-          if (id) remapped[id] = v
-        })
         setRunState((prev) => ({
           ...prev,
           status: data.status,
-          nodeStatuses: { ...prev.nodeStatuses, ...remapped },
+          nodeStatuses: { ...prev.nodeStatuses, },
         }))
       }
     )

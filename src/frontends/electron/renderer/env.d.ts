@@ -1,18 +1,16 @@
 /// <reference types="vite/client" />
 
 import type { NodeStatusesMap } from './components/RunTab/GraphNodeBadge'
+import type { ParsedEvent } from '@aspire-pipeline-viewer/core'
 
 interface RunOutputEvent {
   runId: string
-  line: string
-  stepName?: string
-  timestamp: number
+  event: ParsedEvent
 }
 
 interface RunStatusChangeEvent {
   runId: string
   status: 'running' | 'success' | 'failed'
-  nodeStatuses: NodeStatusesMap
 }
 
 interface ElectronAPI {
