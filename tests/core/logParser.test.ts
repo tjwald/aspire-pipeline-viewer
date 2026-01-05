@@ -6,53 +6,51 @@ describe('LogParser', () => {
 
   it('parses start lines', () => {
     const line = '09:52:13 (install-uv-app) → Starting install-uv-app...'
-    const events = parseLogLine(line, ref)
-    expect(events.length).toBe(1)
-    const ev = events[0]
-    expect(ev.type).toBe('start')
-    expect(ev.stepName).toBe('install-uv-app')
-    expect(ev.text).toBe(line)
-    expect(ev.timestamp).toBe(Date.UTC(2025, 0, 1, 9, 52, 13))
+    const ev = parseLogLine(line, ref)
+    expect(ev).toBeDefined()
+    expect(ev!.type).toBe('start')
+    expect(ev!.stepName).toBe('install-uv-app')
+    expect(ev!.text).toBe('Starting install-uv-app...')
+    expect(ev!.timestamp).toBe(Date.UTC(2025, 0, 1, 9, 52, 13))
   })
 
   it('parses success lines', () => {
     const line = '09:52:14 (install-uv-app) ✓ install-uv-app completed successfully'
-    const events = parseLogLine(line, ref)
-    expect(events.length).toBe(1)
-    const ev = events[0]
-    expect(ev.type).toBe('success')
-    expect(ev.stepName).toBe('install-uv-app')
-    expect(ev.timestamp).toBe(Date.UTC(2025, 0, 1, 9, 52, 14))
+    const ev = parseLogLine(line, ref)
+    expect(ev).toBeDefined()
+    expect(ev!.type).toBe('success')
+    expect(ev!.stepName).toBe('install-uv-app')
+    expect(ev!.text).toBe('install-uv-app completed successfully')
+    expect(ev!.timestamp).toBe(Date.UTC(2025, 0, 1, 9, 52, 14))
   })
 
   it('parses failure lines', () => {
     const line = '09:52:15 (install-uv-app) ✗ failed to run step'
-    const events = parseLogLine(line, ref)
-    expect(events.length).toBe(1)
-    const ev = events[0]
-    expect(ev.type).toBe('failure')
-    expect(ev.stepName).toBe('install-uv-app')
-    expect(ev.timestamp).toBe(Date.UTC(2025, 0, 1, 9, 52, 15))
+    const ev = parseLogLine(line, ref)
+    expect(ev).toBeDefined()
+    expect(ev!.type).toBe('failure')
+    expect(ev!.stepName).toBe('install-uv-app')
+    expect(ev!.text).toBe('failed to run step')
+    expect(ev!.timestamp).toBe(Date.UTC(2025, 0, 1, 9, 52, 15))
   })
 
   it('routes generic step lines to step buffer', () => {
     const line = '09:52:16 (pipeline-execution) i Some intermediate log message'
-    const events = parseLogLine(line, ref)
-    expect(events.length).toBe(1)
-    const ev = events[0]
-    expect(ev.type).toBe('line')
-    expect(ev.stepName).toBe('pipeline-execution')
-    expect(ev.timestamp).toBe(Date.UTC(2025, 0, 1, 9, 52, 16))
+    const ev = parseLogLine(line, ref)
+    expect(ev).toBeDefined()
+    expect(ev!.type).toBe('line')
+    expect(ev!.stepName).toBe('pipeline-execution')
+    expect(ev!.text).toBe('Some intermediate log message')
+    expect(ev!.timestamp).toBe(Date.UTC(2025, 0, 1, 9, 52, 16))
   })
 
   it('handles lines without step/time as plain lines', () => {
     const line = 'A non standard output line without time'
-    const events = parseLogLine(line, ref)
-    expect(events.length).toBe(1)
-    const ev = events[0]
-    expect(ev.type).toBe('line')
-    expect(ev.stepName).toBeUndefined()
-    expect(typeof ev.timestamp).toBe('number')
+    const ev = parseLogLine(line, ref)
+    expect(ev).toBeDefined()
+    expect(ev!.type).toBe('line')
+    expect(ev!.stepName).toBeUndefined()
+    expect(typeof ev!.timestamp).toBe('number')
   })
 })
 
@@ -60,13 +58,12 @@ describe('LogParser OSC/ANSI edge cases', () => {
   const ref = Date.UTC(2025, 0, 1)
   it('parses lines with OSC and ANSI codes before timestamp/step', () => {
     const line = '\x1b]9;4;3\x1b\\23:52:13 (lint-frontend) → Starting lint-frontend...'
-    const events = parseLogLine(line, ref)
-    expect(events.length).toBe(1)
-    const ev = events[0]
-    expect(ev.type).toBe('start')
-    expect(ev.stepName).toBe('lint-frontend')
-    expect(ev.text).toContain('lint-frontend')
-    expect(ev.timestamp).toBe(Date.UTC(2025, 0, 1, 23, 52, 13))
+    const ev = parseLogLine(line, ref)
+    expect(ev).toBeDefined()
+    expect(ev!.type).toBe('start')
+    expect(ev!.stepName).toBe('lint-frontend')
+    expect(ev!.text).toContain('lint-frontend')
+    expect(ev!.timestamp).toBe(Date.UTC(2025, 0, 1, 23, 52, 13))
   })
 })
 
@@ -88,12 +85,11 @@ describe('LogParser real-world OSC/ANSI lines', () => {
     ];
     for (const line of lines) {
       // Use String.raw to avoid octal escape issues
-      const events = parseLogLine(String.raw`${line}`, ref);
-      expect(events.length).toBe(1);
-      const ev = events[0];
-      expect(ev.stepName).toBeDefined();
-      expect(typeof ev.stepName).toBe('string');
-      expect(ev.stepName!.length).toBeGreaterThan(0);
+      const ev = parseLogLine(String.raw`${line}`, ref);
+      expect(ev).toBeDefined();
+      expect(ev!.stepName).toBeDefined();
+      expect(typeof ev!.stepName).toBe('string');
+      expect(ev!.stepName!.length).toBeGreaterThan(0);
     }
   });
 });
@@ -160,10 +156,9 @@ describe('LogParser regression: aspire lint output', () => {
   ]
   it('matches expected output objects for aspire lint lines', () => {
     regressionLines.forEach((line, i) => {
-      const events = parseLogLine(line, ref)
-      expect(events.length).toBe(1)
-      const event = events[0]
-      expect({ stepName: event.stepName, type: event.type }).toEqual(regressionExpected[i])
+      const event = parseLogLine(line, ref)
+      expect(event).toBeDefined()
+      expect({ stepName: event!.stepName, type: event!.type }).toEqual(regressionExpected[i])
     })
   })
 })

@@ -34,14 +34,14 @@ export function parseLogLine(
     const refMs = referenceDateMs ?? Date.now();
     const ref = new Date(refMs);
 
-    const timestamp = new Date(
-      ref.getFullYear(),
-      ref.getMonth(),
-      ref.getDate(),
+    const timestamp = Date.UTC(
+      ref.getUTCFullYear(),
+      ref.getUTCMonth(),
+      ref.getUTCDate(),
       hh,
       mm,
       ss
-    ).getTime();
+    );
 
     const openParen = clean.indexOf("(");
     const closeParen = clean.indexOf(")", openParen + 1);

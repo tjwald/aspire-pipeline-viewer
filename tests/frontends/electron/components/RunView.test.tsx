@@ -3,7 +3,8 @@ import { render, screen, fireEvent, act, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { RunView, getTransitiveDependencies } from '../../../../src/frontends/electron/renderer/components/RunTab/RunView'
-import type { PipelineGraph } from '@aspire-pipeline-viewer/core'
+import type { PipelineGraph, ParsedEvent } from '@aspire-pipeline-viewer/core'
+import { ExecutionStatus } from '@aspire-pipeline-viewer/core'
 import type { NodeStatusesMap } from '../../../../src/frontends/electron/renderer/components/RunTab/GraphNodeBadge'
 
 // Mock electronAPI
@@ -166,8 +167,8 @@ describe('RunView', () => {
     })
 
     it('updates logs when receiving run output events', async () => {
-      let outputCallback: (data: { runId: string; line: string; stepName?: string; timestamp: number }) => void
-      
+      let outputCallback: (data: { runId: string; event: ParsedEvent }) => void
+
       mockElectronAPI.onRunOutput.mockImplementation((cb) => {
         outputCallback = cb
         return vi.fn()
@@ -185,9 +186,12 @@ describe('RunView', () => {
       act(() => {
         outputCallback!({
           runId: 'test-run-1',
-          line: 'Building project...',
-          stepName: 'step-1',
-          timestamp: Date.now(),
+          event: {
+            timestamp: Date.now(),
+            text: 'Building project...',
+            stepName: 'step-1',
+            type: 'line',
+          },
         })
       })
 
@@ -197,8 +201,8 @@ describe('RunView', () => {
     })
 
     it('ignores events for different run IDs', async () => {
-      let outputCallback: (data: { runId: string; line: string; stepName?: string; timestamp: number }) => void
-      
+      let outputCallback: (data: { runId: string; event: ParsedEvent }) => void
+
       mockElectronAPI.onRunOutput.mockImplementation((cb) => {
         outputCallback = cb
         return vi.fn()
@@ -216,9 +220,12 @@ describe('RunView', () => {
       act(() => {
         outputCallback!({
           runId: 'different-run',
-          line: 'Should not appear',
-          stepName: 'step-1',
-          timestamp: Date.now(),
+          event: {
+            timestamp: Date.now(),
+            text: 'Should not appear',
+            stepName: 'step-1',
+            type: 'line',
+          },
         })
       })
 
@@ -247,7 +254,7 @@ describe('RunView', () => {
         statusCallback!({
           runId: 'test-run-1',
           status: 'running',
-          nodeStatuses: { 'step-1': 'success', 'step-2': 'running' },
+          nodeStatuses: { 'step-1': ExecutionStatus.Success, 'step-2': ExecutionStatus.Running },
         })
       })
 
@@ -265,8 +272,8 @@ describe('RunView', () => {
 
   describe('node selection and log filtering', () => {
     it('filters logs when a node is selected in the graph', async () => {
-      let outputCallback: (data: { runId: string; line: string; stepName?: string; timestamp: number }) => void
-      
+      let outputCallback: (data: { runId: string; event: ParsedEvent }) => void
+
       mockElectronAPI.onRunOutput.mockImplementation((cb) => {
         outputCallback = cb
         return vi.fn()
@@ -284,21 +291,30 @@ describe('RunView', () => {
       act(() => {
         outputCallback!({
           runId: 'test-run-1',
-          line: 'Building...',
-          stepName: 'step-1',
-          timestamp: Date.now(),
+          event: {
+            timestamp: Date.now(),
+            text: 'Building...',
+            stepName: 'step-1',
+            type: 'line',
+          },
         })
         outputCallback!({
           runId: 'test-run-1',
-          line: 'Testing...',
-          stepName: 'step-2',
-          timestamp: Date.now() + 1000,
+          event: {
+            timestamp: Date.now() + 1000,
+            text: 'Testing...',
+            stepName: 'step-2',
+            type: 'line',
+          },
         })
         outputCallback!({
           runId: 'test-run-1',
-          line: 'Deploying...',
-          stepName: 'step-3',
-          timestamp: Date.now() + 2000,
+          event: {
+            timestamp: Date.now() + 2000,
+            text: 'Deploying...',
+            stepName: 'step-3',
+            type: 'line',
+          },
         })
       })
 
@@ -362,7 +378,7 @@ describe('RunView', () => {
         statusCallback!({
           runId: 'test-run-1',
           status: 'success',
-          nodeStatuses: { 'step-1': 'success', 'step-2': 'success' },
+          nodeStatuses: { 'step-1': ExecutionStatus.Success, 'step-2': ExecutionStatus.Success },
         })
       })
 

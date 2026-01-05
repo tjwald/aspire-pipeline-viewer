@@ -58,16 +58,16 @@ describe('LogViewer', () => {
     expect(screen.getByText('No logs yet...')).toBeInTheDocument()
   })
 
-  it('includes logs without stepName when filtering (system logs)', () => {
+  it('excludes logs without stepName when filtering (system logs)', () => {
     const logsWithSystem: LogLine[] = [
       { timestamp: 1704297600000, text: 'System message', stepName: undefined },
       { timestamp: 1704297601000, text: 'Build log', stepName: 'build' },
       { timestamp: 1704297602000, text: 'Test log', stepName: 'test' },
     ]
-    
-    // System logs (no stepName) should appear in all filtered views
+
+    // System logs (no stepName) do not appear when filtering by step
     render(<LogViewer logs={logsWithSystem} selectedStepId="build" />)
-    expect(screen.getByText('System message')).toBeInTheDocument()
+    expect(screen.queryByText('System message')).not.toBeInTheDocument()
     expect(screen.getByText('Build log')).toBeInTheDocument()
     expect(screen.queryByText('Test log')).not.toBeInTheDocument()
   })

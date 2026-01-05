@@ -152,12 +152,13 @@ export function RunView({ runId, graph, targetStepId, initialName }: RunViewProp
       (data: {
   runId: string
   status: 'running' | 'success' | 'failed'
+  nodeStatuses?: Record<string, ExecutionStatus>
 }) => {
         if (data.runId !== runId) return
         setRunState((prev) => ({
           ...prev,
           status: data.status,
-          nodeStatuses: { ...prev.nodeStatuses, },
+          nodeStatuses: { ...prev.nodeStatuses, ...data.nodeStatuses },
         }))
       }
     )

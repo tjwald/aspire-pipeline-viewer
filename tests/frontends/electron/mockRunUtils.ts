@@ -46,9 +46,9 @@ export class MockRunService extends EventEmitter implements IRunService {
     const lines = text.split(/\r?\n/)
     for (const ln of lines) {
       if (!ln) continue
-      const events = parseLogLine(ln)
-      for (const ev of events) {
-        this.emit('event', { runId, event: ev })
+      const event = parseLogLine(ln)
+      if (event) {
+        this.emit('event', { runId, event })
       }
     }
   }
