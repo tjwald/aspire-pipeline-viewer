@@ -26,6 +26,18 @@ test.beforeAll(async () => {
   page = await electronApp.firstWindow()
   await page.waitForLoadState('domcontentloaded')
   await page.waitForTimeout(1000)
+
+  // Mock the runStep API globally for all tests to prevent actual process execution
+  await page.evaluate(() => {
+    const win = window as typeof window & { electronAPI?: Record<string, unknown> }
+    if (win.electronAPI) {
+      // Override runStep to return immediately without spawning process
+      win.electronAPI.runStep = async (stepId?: string) => {
+        console.log('[TEST] Mock runStep called with:', stepId)
+        return `mock-run-${Date.now()}`
+      }
+    }
+  })
 })
 
 test.afterAll(async () => {
@@ -67,33 +79,36 @@ test.describe('Run Button Integration', () => {
   })
 
   test('should have Run button that calls window.electronAPI.runStep when clicked', async () => {
+    console.log('[TEST] Starting run button test')
     await ensurePipelineLoaded()
+    console.log('[TEST] Pipeline loaded')
 
-    // Mock the runStep API to prevent actual process execution
-    await page.evaluate(() => {
+    // Verify mock is applied
+    const mockApplied = await page.evaluate(() => {
       const win = window as typeof window & { electronAPI?: Record<string, unknown> }
-      if (win.electronAPI) {
-        // Override runStep to return immediately without spawning process
-        win.electronAPI.runStep = async (stepId?: string) => {
-          console.log('[TEST] Mock runStep called with:', stepId)
-          return `mock-run-${Date.now()}`
-        }
-      }
+      return win.electronAPI?.runStep !== undefined && typeof win.electronAPI.runStep === 'function'
     })
+    console.log('[TEST] Mock applied:', mockApplied)
+    expect(mockApplied).toBe(true)
 
     // Select a step
     const firstStep = page.locator('.sidebar .step-item').first()
     await firstStep.click()
+    console.log('[TEST] Step selected')
     await page.waitForTimeout(500)
 
     // Click Run button
     const runButton = page.locator('[data-testid="run-step-btn"]')
+    console.log('[TEST] Clicking run button')
     await runButton.click()
+    console.log('[TEST] Run button clicked')
 
     // Should switch to Runs view
+    console.log('[TEST] Waiting for runs view')
     await expect(page.locator('[data-testid="view-mode-runs"].active')).toBeVisible({
       timeout: 5000,
     })
+    console.log('[TEST] Test passed')
   })
 
   test('should not show Run button in Web builds', async () => {

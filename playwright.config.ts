@@ -7,7 +7,7 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: 1, // Only 1 worker for Electron tests
   reporter: [['list'], ['html']],
-  timeout: 30000,
+  timeout: 10000,
 
   use: {
     trace: 'retain-on-failure',
