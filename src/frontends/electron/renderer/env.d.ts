@@ -1,6 +1,5 @@
 /// <reference types="vite/client" />
 
-import type { NodeStatusesMap } from './components/RunTab/GraphNodeBadge'
 import type { ParsedEvent } from '@aspire-pipeline-viewer/core'
 
 interface RunOutputEvent {

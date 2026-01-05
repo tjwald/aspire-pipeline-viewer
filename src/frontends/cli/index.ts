@@ -132,13 +132,13 @@ async function runStepCommand(directory: string, stepName: string) {
 
   // Use CLI-side IRunService
   const runService = new RunServiceCLI(resolvedDir);
-  runService.on('event', ({ runId, event }) => {
+  runService.on('event', ({ runId: _runId, event }) => {
     // Output all events as JSON
     console.log(JSON.stringify(event));
   });
 
   try {
-    const runId = await runService.startRun(stepName);
+    const _runId = await runService.startRun(stepName);
     // Wait for process to finish (handled by RunServiceCLI)
     // Optionally, add graceful shutdown or error handling here
   } catch (err) {

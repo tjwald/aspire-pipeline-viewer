@@ -104,7 +104,7 @@ export class RunServiceCLI implements IRunService {
     }
   }
 
-  async renameRun(runId: string, name: string): Promise<void> {
+  async renameRun(_runId: string, _name: string): Promise<void> {
     // No-op for CLI
   }
 

@@ -1,11 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import type { PipelineGraph } from '@aspire-pipeline-viewer/core'
+import type { PipelineGraph, ExecutionStatus } from '@aspire-pipeline-viewer/core'
 import { calculateHierarchicalPositions, getResourceColor, wrapStepName, isAggregator, type CenterLane } from '../utils'
 import { useZoomPan } from '../hooks/useZoomPan'
 import { GraphNodeBadge } from '../../electron/renderer/components/RunTab/GraphNodeBadge'
 import '../styles/graph.css'
-
-export type StepStatus = 'pending' | 'running' | 'success' | 'failed' | 'skipped'
 
 export type GraphViewProps = {
   graph: PipelineGraph
@@ -13,7 +11,7 @@ export type GraphViewProps = {
   onSelectStep?: (id: string) => void
   visibleStepIds?: Set<string>
   onRunStep?: (stepId: string) => void
-  nodeStatuses?: Record<string, StepStatus>
+  nodeStatuses?: Record<string, ExecutionStatus>
 }
 
 export function GraphView({ graph, selectedStepId, onSelectStep, visibleStepIds, onRunStep, nodeStatuses }: GraphViewProps) {
@@ -317,22 +315,6 @@ export function GraphView({ graph, selectedStepId, onSelectStep, visibleStepIds,
       })
     })
     return edges
-  }
-
-  const statusBadgeColors: Record<StepStatus, string> = {
-    pending: '#bdbdbd',
-    running: '#2196f3',
-    success: '#43a047',
-    failed: '#e53935',
-    skipped: '#bdbdbd',
-  }
-
-  const statusBadgeIcons: Record<StepStatus, string> = {
-    pending: '⏳',
-    running: '▶️',
-    success: '✔️',
-    failed: '❌',
-    skipped: '⏭️',
   }
 
   const renderNodes = () => {

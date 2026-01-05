@@ -68,7 +68,8 @@ export function RunView({ runId, graph, targetStepId, initialName }: RunViewProp
 
   // Utility to strip ANSI codes and normalize
   function stripAnsi(s: string): string {
-    return s ? s.replace(/\x1b\[[0-9;]*m/g, '').trim().toLowerCase() : ''
+    // eslint-disable-next-line no-control-regex
+    return s ? s.replace(/\u001b\[[0-9;]*m/g, '').trim().toLowerCase() : ''
   }
 
   // Map stepName (from logs) to stepId (from graph), robust to ANSI and case
@@ -97,11 +98,11 @@ export function RunView({ runId, graph, targetStepId, initialName }: RunViewProp
     }
   }, [graph, targetStepId])
 
-  // Filter sidebar steps
-  const filteredSteps = useMemo(() => {
-    const visibleSteps = getTransitiveDependencies(graph, targetStepId)
-    return graph.steps.filter((s) => visibleSteps.has(s.id))
-  }, [graph, targetStepId])
+  // // Filter sidebar steps
+  // const filteredSteps = useMemo(() => {
+  //   const visibleSteps = getTransitiveDependencies(graph, targetStepId)
+  //   return graph.steps.filter((s) => visibleSteps.has(s.id))
+  // }, [graph, targetStepId])
 
   // Subscribe to run events from electronAPI
   useEffect(() => {
@@ -114,7 +115,6 @@ export function RunView({ runId, graph, targetStepId, initialName }: RunViewProp
         if (data.runId !== runId) return
         const event = data.event
         // Debug: log raw and processed log info to the console for troubleshooting
-        // eslint-disable-next-line no-console
         console.log('[RunView] Log received:', {
           raw: event,
           strippedStepName: event.stepName ? stripAnsi(event.stepName) : undefined,
@@ -412,25 +412,6 @@ function RunGraphWithBadges({ graph, nodeStatuses, selectedStepId, onSelectStep 
         nodeStatuses={nodeStatuses}
       />
     </div>
-  )
-}
-
-function StatusIndicator({ status }: { status: ExecutionStatus }) {
-  const config: Record<ExecutionStatus, { symbol: string; color: string }> = {
-    pending: { symbol: '○', color: '#858585' },
-    running: { symbol: '◉', color: '#f59e0b' },
-    success: { symbol: '✓', color: '#22c55e' },
-    failed: { symbol: '✗', color: '#ef4444' },
-    skipped: { symbol: '⊘', color: '#6b7280' },
-  }
-
-  return (
-    <span
-      style={{ color: config[status].color, fontSize: '14px', fontWeight: 'bold' }}
-      data-testid={`status-indicator-${status}`}
-    >
-      {config[status].symbol}
-    </span>
   )
 }
 

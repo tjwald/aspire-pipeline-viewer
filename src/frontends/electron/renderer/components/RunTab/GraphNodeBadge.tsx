@@ -8,30 +8,14 @@ export interface GraphNodeBadgeProps {
 }
 
 const statusConfig: Record<ExecutionStatus, { symbol: string; color: string; bgColor: string }> = {
-  pending: { symbol: '○', color: '#858585', bgColor: 'rgba(133,133,133,0.2)' },
-  running: { symbol: '◉', color: '#f59e0b', bgColor: 'rgba(245,158,11,0.2)' },
-  success: { symbol: '✓', color: '#22c55e', bgColor: 'rgba(34,197,94,0.2)' },
-  failed: { symbol: '✗', color: '#ef4444', bgColor: 'rgba(239,68,68,0.2)' },
-  skipped: { symbol: '⊘', color: '#6b7280', bgColor: 'rgba(107,114,128,0.2)' },
+  pending: { symbol: '⏳', color: '#bdbdbd', bgColor: 'rgba(189,189,189,0.2)' },
+  running: { symbol: '▶️', color: '#2196f3', bgColor: 'rgba(33,150,243,0.2)' },
+  success: { symbol: '✔️', color: '#43a047', bgColor: 'rgba(67,160,71,0.2)' },
+  failed: { symbol: '❌', color: '#e53935', bgColor: 'rgba(229,57,53,0.2)' },
+  skipped: { symbol: '⏭️', color: '#bdbdbd', bgColor: 'rgba(189,189,189,0.2)' },
 }
 
 export function GraphNodeBadge({ status, x, y }: GraphNodeBadgeProps) {
-  // Implementation copied from the previous inline graph-node-badge
-  // Used in GraphView.tsx before refactor
-  const statusBadgeColors: Record<ExecutionStatus, string> = {
-    pending: '#bdbdbd',
-    running: '#2196f3',
-    success: '#43a047',
-    failed: '#e53935',
-    skipped: '#bdbdbd',
-  }
-  const statusBadgeIcons: Record<ExecutionStatus, string> = {
-    pending: '⏳',
-    running: '▶️',
-    success: '✔️',
-    failed: '❌',
-    skipped: '⏭️',
-  }
   return (
     <g className={`graph-node-badge status-${status}`} data-testid={`badge-${status}`}
       >
@@ -40,7 +24,7 @@ export function GraphNodeBadge({ status, x, y }: GraphNodeBadgeProps) {
         cx={x}
         cy={y}
         r={14}
-        fill={statusBadgeColors[status]}
+        fill={statusConfig[status].color}
         stroke="#222"
         strokeWidth={2}
         filter="url(#shadow)"
@@ -53,7 +37,7 @@ export function GraphNodeBadge({ status, x, y }: GraphNodeBadgeProps) {
         fontWeight="bold"
         fill="#fff"
       >
-        {statusBadgeIcons[status]}
+        {statusConfig[status].symbol}
       </text>
     </g>
   )

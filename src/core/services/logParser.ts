@@ -3,7 +3,8 @@ import type { ParsedEvent } from './interfaces'
 const stripAnsi = (input: string) =>
   input.replace(
     // ANSI escape sequences
-    /\x1B\[[0-9;]*[A-Za-z]|\x1B\][0-9];.*?(\x07|\\)/g,
+    // eslint-disable-next-line no-control-regex
+    /\u001B\[[0-9;]*[A-Za-z]|\u001B\][0-9];.*?(\u0007|\\)/g,
     ""
   );
 
