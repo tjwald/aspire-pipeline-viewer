@@ -15,8 +15,20 @@ export interface RunTabContainerProps {
   onCloseTab?: (tabId: string) => void
 }
 
-export function RunTabContainer({ graph, tabs, onCloseTab }: RunTabContainerProps) {
+export function RunTabContainer({ graph, tabs, onCloseTab, onOpenRun }: RunTabContainerProps & { onOpenRun?: (runId: string, name: string, targetStepId: string) => void }) {
   const [activeTabId, setActiveTabId] = useState<string | undefined>(tabs[0]?.id)
+  const [runsDir, setRunsDir] = useState<string>('')
+  const [history, setHistory] = useState<Array<{runId: string, name?: string, startedAt: number, targetStepId?: string}>>([])
+  
+  // Fetch history and runs dir on mount or when tabs empty
+  useEffect(() => {
+    if (window.electronAPI?.getRunsDirectory) {
+      window.electronAPI.getRunsDirectory().then(setRunsDir).catch(console.error)
+    }
+    if (window.electronAPI?.getRunHistory) {
+      window.electronAPI.getRunHistory().then(setHistory).catch(console.error)
+    }
+  }, [tabs.length])
 
   // When a new tab is added, automatically switch to it
   useEffect(() => {
@@ -54,6 +66,50 @@ export function RunTabContainer({ graph, tabs, onCloseTab }: RunTabContainerProp
           <div className="empty-message">
             <p>No active runs</p>
             <p className="hint">Right-click a step in the graph or use the sidebar to start a run.</p>
+            {runsDir && (
+              <p className="hint" style={{ marginTop: '20px', fontSize: '11px', opacity: 0.6 }}>
+                Runs are automatically saved to: <br/>
+                <code>
+                  {(() => {
+                    // Quick heuristic to format the path nicely
+                    const lowerPath = runsDir.toLowerCase()
+                    if (lowerPath.includes('\\appdata\\roaming\\')) {
+                      return runsDir.replace(/^C:\\Users\\[^\\]+\\AppData\\Roaming\\/i, '%APPDATA%\\')
+                    } else if (lowerPath.includes('\\appdata\\local\\')) {
+                      return runsDir.replace(/^C:\\Users\\[^\\]+\\AppData\\Local\\/i, '%LOCALAPPDATA%\\')
+                    } else {
+                      // Fallback POSIX tilde
+                      const home = '/home/'
+                      if (runsDir.startsWith(home)) {
+                        const parts = runsDir.split('/')
+                        if (parts.length >= 3) {
+                          return `~/${parts.slice(3).join('/')}`
+                        }
+                      }
+                    }
+                    return runsDir
+                  })()}
+                </code>
+              </p>
+            )}
+            
+            {history.length > 0 && (
+              <div className="recent-runs">
+                <h3 style={{ fontSize: '14px', marginBottom: '8px', color: '#e0e0e0' }}>Recent Runs from Disk</h3>
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, textAlign: 'left', width: '100%', maxWidth: '400px' }}>
+                  {history.slice(0, 10).map(run => (
+                    <li
+                      key={run.runId}
+                      onClick={() => onOpenRun?.(run.runId, run.name || 'Unknown Run', run.targetStepId || 'History')}
+                      style={{ padding: '8px 12px', background: '#2d2d2d', marginBottom: '4px', borderRadius: '4px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                    >
+                      <span style={{ fontWeight: 500 }}>{run.name || run.runId}</span>
+                      <span style={{ fontSize: '12px', color: '#858585' }}>{new Date(run.startedAt).toLocaleString()}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </div>
         <style>{`
@@ -81,6 +137,7 @@ export function RunTabContainer({ graph, tabs, onCloseTab }: RunTabContainerProp
           }
           .empty-message p { margin: 8px 0 }
           .empty-message .hint { font-size: 13px; color: #6a6a6a }
+          .recent-runs li:hover { background: #3c3c3c !important; }
         `}</style>
       </div>
     )
@@ -90,24 +147,13 @@ export function RunTabContainer({ graph, tabs, onCloseTab }: RunTabContainerProp
     <div className="run-tab-container" data-testid="run-tab-container">
       <div className="run-tab-bar" role="tablist" data-testid="run-tab-bar">
         {tabs.map((tab) => (
-          <div
+          <RunTabItem
             key={tab.id}
-            className={`run-tab ${tab.id === activeTabId ? 'active' : ''}`}
-            role="tab"
-            aria-selected={tab.id === activeTabId}
+            tab={tab}
+            isActive={tab.id === activeTabId}
             onClick={() => setActiveTabId(tab.id)}
-            data-testid={`run-tab-${tab.id}`}
-          >
-            <span className="tab-name">{tab.name}</span>
-            <button
-              className="tab-close"
-              onClick={(e) => handleCloseTab(tab.id, e)}
-              aria-label={`Close ${tab.name}`}
-              data-testid={`close-tab-${tab.id}`}
-            >
-              ×
-            </button>
-          </div>
+            onClose={(e) => handleCloseTab(tab.id, e)}
+          />
         ))}
       </div>
       <div className="run-tab-content" data-testid="run-tab-content">
@@ -216,4 +262,136 @@ export function useRunTabs() {
   }, [])
 
   return { tabs, addTab, removeTab }
+}
+
+// Subcomponent for handling complex tab state (status updates, timer, inline rename)
+function RunTabItem({
+  tab,
+  isActive,
+  onClick,
+  onClose,
+}: {
+  tab: RunTab
+  isActive: boolean
+  onClick: () => void
+  onClose: (e: React.MouseEvent) => void
+}) {
+  const [status, setStatus] = useState<string>('running')
+  const [elapsed, setElapsed] = useState<number>(0)
+  const [name, setName] = useState<string>(tab.name)
+  const [isRenaming, setIsRenaming] = useState(false)
+  const [editName, setEditName] = useState(name)
+
+  // Listen for synthetic events from RunView to mirror state without heavy React Context overhead
+  useEffect(() => {
+    const handleUpdate = (e: any) => {
+      if (e.detail) {
+        if (e.detail.status) setStatus(e.detail.status)
+        if (e.detail.elapsed !== undefined) setElapsed(e.detail.elapsed)
+        // If RunView synced a history name load, respect it here (runState.name in RunView)
+        // If user initiates inline rename from tab, we override this in handleSaveRename
+        if (e.detail.name && !isRenaming) setName(e.detail.name)
+      }
+    }
+    window.addEventListener(`run-tab-update-${tab.runId}`, handleUpdate)
+    return () => window.removeEventListener(`run-tab-update-${tab.runId}`, handleUpdate)
+  }, [tab.runId, isRenaming])
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault()
+    if (window.electronAPI?.showTabContextMenu && !isRenaming) {
+      window.electronAPI.showTabContextMenu().then(action => {
+        if (action === 'rename') {
+          setIsRenaming(true)
+          setEditName(name)
+        }
+      })
+    } else {
+      // Fallback for non-electron or if context menu API missing
+      setIsRenaming(true)
+      setEditName(name)
+    }
+  }
+
+  const handleSaveRename = async () => {
+    if (window.electronAPI?.renameRun && editName.trim()) {
+      await window.electronAPI.renameRun(tab.runId, editName)
+      setName(editName) // optimistically update local UI
+    }
+    setIsRenaming(false)
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSaveRename()
+    } else if (e.key === 'Escape') {
+      setIsRenaming(false)
+      setEditName(name)
+    }
+  }
+
+  // Format status badge inline
+  let statusIcon = '● '
+  let statusColor = '#f59e0b'
+  if (status === 'success') {
+    statusIcon = '✔ '
+    statusColor = '#22c55e'
+  } else if (status === 'failed') {
+    statusIcon = '✖ '
+    statusColor = '#ef4444'
+  }
+
+  return (
+    <div
+      className={`run-tab ${isActive ? 'active' : ''}`}
+      role="tab"
+      aria-selected={isActive}
+      onClick={!isRenaming ? onClick : undefined}
+      onContextMenu={handleContextMenu}
+      data-testid={`run-tab-${tab.id}`}
+      title="Right click to rename"
+    >
+      <span style={{ color: statusColor, marginRight: '4px', fontSize: '10px' }}>{statusIcon}</span>
+      {isRenaming ? (
+        <input
+          autoFocus
+          className="tab-rename-input"
+          value={editName}
+          onChange={(e) => setEditName(e.target.value)}
+          onBlur={handleSaveRename}
+          onKeyDown={handleKeyDown}
+          onClick={(e) => e.stopPropagation()} // Prevent activating tab when clicking input
+        />
+      ) : (
+        <>
+          <span className="tab-name">{name}</span>
+          {status === 'running' && elapsed > 0 && <span className="tab-timer">({elapsed}s)</span>}
+        </>
+      )}
+      <button
+        className="tab-close"
+        onClick={onClose}
+        aria-label={`Close ${name}`}
+        data-testid={`close-tab-${tab.id}`}
+      >
+        ×
+      </button>
+      <style>{`
+        .tab-rename-input {
+          background: #3c3c3c;
+          border: 1px solid #0e639c;
+          color: #e0e0e0;
+          font-size: 13px;
+          padding: 2px 4px;
+          width: 80px;
+          flex: 1;
+        }
+        .tab-timer {
+          font-size: 11px;
+          color: #858585;
+          margin-left: 4px;
+        }
+      `}</style>
+    </div>
+  )
 }

@@ -21,6 +21,9 @@ const electronAPI = {
   killRun: (runId: string) => ipcRenderer.invoke('kill-run', runId),
   renameRun: (runId: string, newName: string) => ipcRenderer.invoke('rename-run', runId, newName),
   getRunDetails: (runId: string) => ipcRenderer.invoke('get-run-details', runId),
+  getRunHistory: () => ipcRenderer.invoke('get-run-history'),
+  getRunsDirectory: () => ipcRenderer.invoke('get-runs-directory'),
+  showTabContextMenu: () => ipcRenderer.invoke('show-tab-context-menu'),
   onRunOutput: (cb: (event: { runId: string; event: ParsedEvent }) => void) => {
     const handler = (_e: IpcRendererEvent, data: { runId: string; event: ParsedEvent }) => cb(data)
     ipcRenderer.on('run-output', handler)

@@ -82,14 +82,37 @@ export function RunView({ runId, graph, targetStepId, initialName }: RunViewProp
       if (window.electronAPI?.getRunDetails) {
         try {
           const details = await window.electronAPI.getRunDetails(runId)
+          console.log('[RunView] loaded run details from disk:', details?.meta?.runId, 'hasGraph:', !!details?.graph, 'log count:', details?.logs?.length)
           if (details) {
             if (details.graph) {
+              console.log('[RunView] Setting runGraph to persisted history details.graph structure.')
               setRunGraph(details.graph)
+            } else {
+              console.log('[RunView] No saved graph found on disk. Falling back to active App graph context.')
             }
             
+            // Overwrite targetStepId with the explicitly loaded correct historical target metadata
+            const loadedTargetId = details.meta.targetStepId || targetStepId
+
             // Reconstruct node statuses and logs
             const g = details.graph || graph
-            const visibleSteps = getTransitiveDependencies(g, targetStepId)
+            if (!g) {
+              console.warn('No graph available for run details reconstruction')
+              return
+            }
+            
+            // Ensure we actually try to parse something regardless of targetStepId if the history implies it ran the whole thing
+            // Fallback to plotting the full graph if targetStepId doesn't exist in historical graph
+            let actualTargetId = loadedTargetId
+            if (!g.steps.find((s) => s.id === actualTargetId)) {
+              console.warn(`[RunView] Target step ${actualTargetId} not found in historical graph, using full graph.`)
+              if (g.steps.length > 0) {
+                  // Heuristic: If target step missing, just use any valid root or simply skip the strict filtering downstream
+              }
+            }
+  
+            const visibleSteps = getTransitiveDependencies(g, actualTargetId)
+            console.log(`[RunView] Visible steps (transitive dependencies for ${actualTargetId}):`, Array.from(visibleSteps))
             const reconstructedStatuses: NodeStatusesMap = {}
             visibleSteps.forEach((id) => {
               reconstructedStatuses[id] = ExecutionStatus.Pending
@@ -171,6 +194,14 @@ export function RunView({ runId, graph, targetStepId, initialName }: RunViewProp
 
   // Compute filtered graph and sidebar steps using runGraph
   const filteredGraph = useMemo((): PipelineGraph => {
+    // If we loaded a graph from history but targetStepId is 'History' (dummy),
+    // or isn't legitimately in the graph, we should render the *entire* graph.
+    const actualTargetInGraph = runGraph.steps.find(s => s.id === targetStepId)
+    if (!actualTargetInGraph) {
+      console.log(`[RunView] Computed filtered graph: targetStepId ${targetStepId} not found, showing full graph.`, runGraph)
+      return runGraph
+    }
+
     const visibleSteps = getTransitiveDependencies(runGraph, targetStepId)
     const filteredSteps = runGraph.steps.filter((s) => visibleSteps.has(s.id))
     const filteredEdges = runGraph.edges.filter(
@@ -191,6 +222,14 @@ export function RunView({ runId, graph, targetStepId, initialName }: RunViewProp
   //   const visibleSteps = getTransitiveDependencies(graph, targetStepId)
   //   return graph.steps.filter((s) => visibleSteps.has(s.id))
   // }, [graph, targetStepId])
+
+  // Sync tab rename when updated via context menu in container, or via getRunDetails
+  useEffect(() => {
+    if (initialName && initialName !== runState.name && !isLoading) {
+      setRunState(prev => ({ ...prev, name: initialName }))
+    }
+  }, [initialName, runState.name, isLoading])
+
 
   // Subscribe to run events from electronAPI
   useEffect(() => {
@@ -272,19 +311,16 @@ export function RunView({ runId, graph, targetStepId, initialName }: RunViewProp
     return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`
   }
 
-  const handleKillRun = useCallback(async () => {
-    if (window.electronAPI?.killRun) {
-      await window.electronAPI.killRun(runId)
-    }
-  }, [runId])
-
-  const handleSaveRename = useCallback(async () => {
-    if (window.electronAPI?.renameRun) {
-      await window.electronAPI.renameRun(runId, editName)
-    }
-    setRunState((prev) => ({ ...prev, name: editName }))
-    setIsRenaming(false)
-  }, [runId, editName])
+  // Bubble up internal state to parent container so tabs can show {status icon} {name} (time s)
+  useEffect(() => {
+    // Dispatch a custom synthetic event so RunTabContainer can pick up live updates if needed
+    // or we can rely on RunTabContainer subscribing to the IPC directly.
+    // Since App state handles tab array, we will just fire a custom event on window
+    const evt = new CustomEvent(`run-tab-update-${runId}`, {
+      detail: { status: runState.status, name: runState.name, elapsed }
+    });
+    window.dispatchEvent(evt);
+  }, [runId, runState.status, runState.name, elapsed])
 
   const handleNodeClick = (stepId: string) => {
     // Toggle selection - clicking same node deselects
@@ -336,39 +372,6 @@ export function RunView({ runId, graph, targetStepId, initialName }: RunViewProp
 
   return (
     <div className="run-view" data-testid="run-view" data-run-id={runId}>
-      <header className="run-header">
-        <div className="run-header-left">
-          {isRenaming ? (
-            <input
-              type="text"
-              className="run-name-input"
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-              onBlur={handleSaveRename}
-              onKeyDown={(e) => e.key === 'Enter' && handleSaveRename()}
-              autoFocus
-              data-testid="run-name-input"
-            />
-          ) : (
-            <h2 className="run-name" onClick={() => setIsRenaming(true)} data-testid="run-name">
-              {runState.name}
-            </h2>
-          )}
-          <span className="run-badge" style={statusBadgeStyle[runState.status]} data-testid="run-status-badge">
-            {runState.status === 'running' && '● '}
-            {runState.status.charAt(0).toUpperCase() + runState.status.slice(1)}
-          </span>
-          <span className="run-timer">{formatElapsed(elapsed)}</span>
-        </div>
-        <div className="run-header-right">
-          {runState.status === 'running' && (
-            <button className="run-kill-btn" onClick={handleKillRun} data-testid="kill-run-btn">
-              ■ Stop
-            </button>
-          )}
-        </div>
-      </header>
-
       <div className="run-content">
         <div className="run-graph-panel" style={{ width: `${splitPosition}%` }}>
           <RunGraphWithBadges
@@ -396,66 +399,6 @@ export function RunView({ runId, graph, targetStepId, initialName }: RunViewProp
           height: 100%;
           width: 100%;
           background: #1e1e1e;
-        }
-        .run-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 12px 16px;
-          background: #252526;
-          border-bottom: 1px solid #3c3c3c;
-        }
-        .run-header-left {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-        .run-header-right {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-        .run-name {
-          margin: 0;
-          font-size: 16px;
-          font-weight: 600;
-          color: #e0e0e0;
-          cursor: pointer;
-        }
-        .run-name:hover {
-          text-decoration: underline;
-        }
-        .run-name-input {
-          font-size: 16px;
-          font-weight: 600;
-          background: #3c3c3c;
-          border: 1px solid #0e639c;
-          color: #e0e0e0;
-          padding: 4px 8px;
-          border-radius: 4px;
-        }
-        .run-badge {
-          padding: 4px 8px;
-          border-radius: 4px;
-          font-size: 12px;
-          font-weight: 600;
-        }
-        .run-timer {
-          color: #858585;
-          font-size: 14px;
-        }
-        .run-kill-btn {
-          padding: 6px 12px;
-          background: #ef4444;
-          color: #fff;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 12px;
-          font-weight: 600;
-        }
-        .run-kill-btn:hover {
-          background: #dc2626;
         }
         .run-content {
           flex: 1;

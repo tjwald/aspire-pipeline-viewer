@@ -26,6 +26,12 @@ export default function App() {
   const [visibleStepIds, setVisibleStepIds] = useState<Set<string> | undefined>()
   const [viewMode, setViewMode] = useState<ViewMode>('graph')
   const { tabs: runTabs, addTab: addRunTab, removeTab: removeRunTab } = useRunTabs()
+  
+  const handleOpenHistoricalRun = useCallback((runId: string, name: string, targetStepId: string) => {
+    // If targetStepId is missing or unknown from older logic we fall back to 'History' dummy string which is handled gracefully in RunView graph
+    addRunTab(runId, targetStepId, name)
+    setViewMode('runs')
+  }, [addRunTab])
 
   const handleOpenWorkspace = useCallback(async () => {
     if (!window.electronAPI) {
@@ -185,6 +191,7 @@ export default function App() {
                 graph={graph}
                 tabs={runTabs}
                 onCloseTab={removeRunTab}
+                onOpenRun={handleOpenHistoricalRun}
               />
             </ErrorBoundary>
           )}

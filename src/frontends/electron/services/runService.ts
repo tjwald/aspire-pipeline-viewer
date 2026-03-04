@@ -20,6 +20,7 @@ interface RunMeta {
   name?: string;
   startedAt: number;
   logPath: string;
+  targetStepId?: string;
 }
 
 export class RunService extends EventEmitter implements IRunService {
@@ -60,6 +61,7 @@ export class RunService extends EventEmitter implements IRunService {
       name: `Run ${stepName} ${new Date(startedAt).toISOString()}`,
       startedAt,
       logPath,
+      targetStepId: stepName,
     };
 
     fs.mkdirSync(path.dirname(logPath), { recursive: true });
@@ -73,15 +75,19 @@ export class RunService extends EventEmitter implements IRunService {
       );
     }
 
-    const cmd = process.platform === 'win32' ? 'cmd' : 'sh';
-    const cmdArgs =
-      process.platform === 'win32'
-        ? ['/c', 'aspire', 'do', stepName]
-        : ['-lc', `aspire do ${stepName}`];
+    // Persist initial metadata IMMEDIATELY so the run can be rehydrated mid-flight
+    await fs.promises.writeFile(
+      path.join(this.baseDir, `${runId}.meta.json`),
+      JSON.stringify(meta, null, 2),
+      'utf-8'
+    );
 
-    const proc = spawn(cmd, cmdArgs, {
-      stdio: ['ignore', 'pipe', 'pipe'],
+    const proc = spawn('aspire', ['do', stepName], {
+      // Use 'pipe' for all 3 streams to avoid 'The handle is invalid' with .NET process
+      stdio: 'pipe',
       cwd: this.workspaceDir || process.cwd(),
+      // Add shell: true to avoid dealing with wrapping in cmd/sh manually
+      shell: true,
     });
 
     const ws = fs.createWriteStream(logPath, { flags: 'a' });
@@ -160,14 +166,9 @@ export class RunService extends EventEmitter implements IRunService {
       };
 
       this.emit('event', { runId, event: ev });
+      
+      // Update meta to indicate completion if needed (could extend meta later)
     });
-
-    // Persist metadata
-    await fs.promises.writeFile(
-      path.join(this.baseDir, `${runId}.meta.json`),
-      JSON.stringify(meta, null, 2),
-      'utf-8'
-    );
 
     return runId;
   }
@@ -201,7 +202,7 @@ export class RunService extends EventEmitter implements IRunService {
 
       await fs.promises.writeFile(metaPath, JSON.stringify(meta, null, 2), 'utf-8');
     } catch {
-      const meta = { runId, name, startedAt: Date.now() };
+      const meta = { runId, name, startedAt: Date.now() }; // Note this fallback rarely hits unless missing but doesn't usually happen mid-rename
       await fs.promises.writeFile(metaPath, JSON.stringify(meta, null, 2), 'utf-8');
     }
   }
@@ -216,12 +217,13 @@ export class RunService extends EventEmitter implements IRunService {
 
         try {
           const raw = await fs.promises.readFile(path.join(this.baseDir, f), 'utf-8');
-          const meta = JSON.parse(raw);
+          const meta = JSON.parse(raw) as RunMeta;
           metas.push({
             runId: meta.runId,
             name: meta.name,
             startedAt: meta.startedAt,
-          });
+            targetStepId: meta.targetStepId,
+          } as any);
         } catch {
           /* ignore malformed metadata */
         }
@@ -264,5 +266,9 @@ export class RunService extends EventEmitter implements IRunService {
     } catch {
       return null;
     }
+  }
+
+  async getRunsDirectory(): Promise<string> {
+    return this.baseDir;
   }
 }

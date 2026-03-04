@@ -45,6 +45,7 @@ export interface IRunService extends IEventStream {
   stopRun(runId: string): Promise<void>
   renameRun(runId: string, name: string): Promise<void>
   getRunHistory(): Promise<Array<{ runId: string; name?: string; startedAt: number }>>
+  getRunsDirectory(): Promise<string>
 }
 
 /**

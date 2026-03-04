@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, type IpcMainInvokeEvent } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, Menu, type IpcMainInvokeEvent } from 'electron'
 import path from 'path'
 import fs from 'fs'
 import { spawn } from 'child_process'
@@ -157,6 +157,39 @@ function setupRunIpcHandlers(
 
     ipc.handle('get-run-details', async (_evt: IpcMainInvokeEvent, runId: unknown) => {
       return svc.getRunDetails(String(runId))
+    })
+
+    ipc.handle('get-run-history', async () => {
+      return svc.getRunHistory()
+    })
+
+    ipc.handle('get-runs-directory', async () => {
+      return svc.getRunsDirectory()
+    })
+
+    // Setup native context menu for tabs
+    ipc.handle('show-tab-context-menu', () => {
+      return new Promise((resolve) => {
+        const template = [
+          {
+            label: 'Rename',
+            click: () => resolve('rename')
+          }
+        ]
+        const menu = Menu.buildFromTemplate(template)
+        
+        // Add a one-time listener for menu close to resolve null if nothing clicked
+        menu.on('menu-will-close', () => {
+          setTimeout(() => resolve(null), 100) // slight delay to allow click event to fire first
+        })
+
+        const win = getWindow()
+        if (win) {
+          menu.popup({ window: win })
+        } else {
+          resolve(null)
+        }
+      })
     })
   }
 

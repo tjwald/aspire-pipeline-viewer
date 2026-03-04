@@ -22,7 +22,10 @@ interface ElectronAPI {
   runStep: (stepName: string, graph?: import('@aspire-pipeline-viewer/core').PipelineGraph) => Promise<string>
   killRun: (runId: string) => Promise<void>
   renameRun: (runId: string, newName: string) => Promise<void>
-  getRunDetails: (runId: string) => Promise<{ meta: { runId: string, name?: string, startedAt: number }, graph?: import('@aspire-pipeline-viewer/core').PipelineGraph, logs: ParsedEvent[] } | null>
+  getRunDetails: (runId: string) => Promise<{ meta: { runId: string, name?: string, startedAt: number, targetStepId?: string }, graph?: import('@aspire-pipeline-viewer/core').PipelineGraph, logs: ParsedEvent[] } | null>
+  getRunHistory: () => Promise<Array<{ runId: string; name?: string; startedAt: number; targetStepId?: string }>>
+  getRunsDirectory: () => Promise<string>
+  showTabContextMenu: () => Promise<'rename' | null>
   onRunOutput: (cb: (data: RunOutputEvent) => void) => () => void
   onRunStatusChange: (cb: (data: RunStatusChangeEvent) => void) => () => void
 }
