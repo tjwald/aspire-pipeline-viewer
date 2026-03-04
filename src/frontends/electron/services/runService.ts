@@ -2,7 +2,7 @@ import { spawn, ChildProcess } from 'child_process';
 import { EventEmitter } from 'events';
 import fs from 'fs';
 import path from 'path';
-import { parseLogLine, ParsedEvent, type IRunService } from '@aspire-pipeline-viewer/core';
+import { parseLogLine, ParsedEvent, type IRunService, type PipelineGraph } from '@aspire-pipeline-viewer/core';
 
 function getUserDataPath(): string {
   try {
@@ -50,7 +50,7 @@ export class RunService extends EventEmitter implements IRunService {
     this.workspaceDir = dir;
   }
 
-  async startRun(stepName: string): Promise<string> {
+  async startRun(stepName: string, graph?: PipelineGraph): Promise<string> {
     const runId = `run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const startedAt = Date.now();
     const logPath = path.join(this.baseDir, `${runId}.log`);
@@ -64,7 +64,22 @@ export class RunService extends EventEmitter implements IRunService {
 
     fs.mkdirSync(path.dirname(logPath), { recursive: true });
 
-    const proc = spawn('aspire', ['do', stepName], {
+    // Save initial graph state if provided
+    if (graph) {
+      await fs.promises.writeFile(
+        path.join(this.baseDir, `${runId}.graph.json`),
+        JSON.stringify(graph, null, 2),
+        'utf-8'
+      );
+    }
+
+    const cmd = process.platform === 'win32' ? 'cmd' : 'sh';
+    const cmdArgs =
+      process.platform === 'win32'
+        ? ['/c', 'aspire', 'do', stepName]
+        : ['-lc', `aspire do ${stepName}`];
+
+    const proc = spawn(cmd, cmdArgs, {
       stdio: ['ignore', 'pipe', 'pipe'],
       cwd: this.workspaceDir || process.cwd(),
     });
@@ -215,6 +230,39 @@ export class RunService extends EventEmitter implements IRunService {
       return metas.sort((a, b) => b.startedAt - a.startedAt);
     } catch {
       return [];
+    }
+  }
+
+  async getRunDetails(runId: string): Promise<{ meta: RunMeta; graph?: PipelineGraph; logs: ParsedEvent[] } | null> {
+    try {
+      const metaPath = path.join(this.baseDir, `${runId}.meta.json`);
+      const metaRaw = await fs.promises.readFile(metaPath, 'utf-8');
+      const meta = JSON.parse(metaRaw) as RunMeta;
+
+      let graph: PipelineGraph | undefined;
+      try {
+        const graphRaw = await fs.promises.readFile(path.join(this.baseDir, `${runId}.graph.json`), 'utf-8');
+        graph = JSON.parse(graphRaw) as PipelineGraph;
+      } catch {
+        // ignore missing graph
+      }
+
+      const logs: ParsedEvent[] = [];
+      try {
+        const logContent = await fs.promises.readFile(meta.logPath, 'utf-8');
+        const lines = logContent.split('\n');
+        for (const line of lines) {
+          if (!line) continue;
+          const ev = parseLogLine(line + '\n');
+          if (ev) logs.push(ev);
+        }
+      } catch {
+        // ignore missing logs
+      }
+
+      return { meta, graph, logs };
+    } catch {
+      return null;
     }
   }
 }

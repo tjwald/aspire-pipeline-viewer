@@ -16,9 +16,11 @@ const electronAPI = {
     return () => ipcRenderer.removeListener('aspire-error', handler)
   },
   // Run management methods (Phase 4)
-  runStep: (runId?: string) => ipcRenderer.invoke('run-step', runId),
+  runStep: (stepName: string, graph?: import('@aspire-pipeline-viewer/core').PipelineGraph) =>
+    ipcRenderer.invoke('run-step', stepName, graph),
   killRun: (runId: string) => ipcRenderer.invoke('kill-run', runId),
   renameRun: (runId: string, newName: string) => ipcRenderer.invoke('rename-run', runId, newName),
+  getRunDetails: (runId: string) => ipcRenderer.invoke('get-run-details', runId),
   onRunOutput: (cb: (event: { runId: string; event: ParsedEvent }) => void) => {
     const handler = (_e: IpcRendererEvent, data: { runId: string; event: ParsedEvent }) => cb(data)
     ipcRenderer.on('run-output', handler)

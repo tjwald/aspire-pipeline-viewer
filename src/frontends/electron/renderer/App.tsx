@@ -73,14 +73,14 @@ export default function App() {
         return
       }
       try {
-        const runId = await window.electronAPI.runStep(stepId)
+        const runId = await window.electronAPI.runStep(stepId, graph || undefined)
         addRunTab(runId, stepId, `Run ${stepId} ${new Date().toLocaleTimeString()}`)
         setViewMode('runs')
       } catch (err) {
         console.error('Failed to start run:', err)
       }
     },
-    [addRunTab]
+    [addRunTab, graph]
   )
 
   if (!graph) {

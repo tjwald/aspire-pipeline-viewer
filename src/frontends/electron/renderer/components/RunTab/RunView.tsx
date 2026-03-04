@@ -48,23 +48,18 @@ export function RunView({ runId, graph, targetStepId, initialName }: RunViewProp
   const [selectedStepId, setSelectedStepId] = useState<string | undefined>()
   const [splitPosition, setSplitPosition] = useState(50) // percentage
   const [isDragging, setIsDragging] = useState(false)
-  const [runState, setRunState] = useState<RunState>(() => {
-    const visibleSteps = getTransitiveDependencies(graph, targetStepId)
-    const initialStatuses: NodeStatusesMap = {}
-    visibleSteps.forEach((id) => {
-      initialStatuses[id] = ExecutionStatus.Pending
-    })
-    return {
-      status: 'running',
-      nodeStatuses: initialStatuses,
-      logs: [],
-      startTime: Date.now(),
-      name: initialName || `Run ${targetStepId} ${new Date().toLocaleTimeString()}`,
-    }
+  const [runGraph, setRunGraph] = useState<PipelineGraph>(graph)
+  const [runState, setRunState] = useState<RunState>({
+    status: 'running',
+    nodeStatuses: {},
+    logs: [],
+    startTime: Date.now(),
+    name: initialName || `Run ${targetStepId} ${new Date().toLocaleTimeString()}`,
   })
   const [elapsed, setElapsed] = useState(0)
   const [isRenaming, setIsRenaming] = useState(false)
   const [editName, setEditName] = useState(runState.name)
+  const [isLoading, setIsLoading] = useState(true)
 
   // Utility to strip ANSI codes and normalize
   function stripAnsi(s: string): string {
@@ -75,28 +70,121 @@ export function RunView({ runId, graph, targetStepId, initialName }: RunViewProp
   // Map stepName (from logs) to stepId (from graph), robust to ANSI and case
   const stepNameToId = useMemo(() => {
     const map: Record<string, string> = {}
-    graph.steps.forEach((s) => {
+    runGraph.steps.forEach((s) => {
       map[stripAnsi(s.name)] = s.id
     })
     return map
-  }, [graph])
+  }, [runGraph])
 
-  // Compute filtered graph and sidebar steps (only target step and its dependencies)
+  // Fetch persisted run details on mount
+  useEffect(() => {
+    async function loadRunDetails() {
+      if (window.electronAPI?.getRunDetails) {
+        try {
+          const details = await window.electronAPI.getRunDetails(runId)
+          if (details) {
+            if (details.graph) {
+              setRunGraph(details.graph)
+            }
+            
+            // Reconstruct node statuses and logs
+            const g = details.graph || graph
+            const visibleSteps = getTransitiveDependencies(g, targetStepId)
+            const reconstructedStatuses: NodeStatusesMap = {}
+            visibleSteps.forEach((id) => {
+              reconstructedStatuses[id] = ExecutionStatus.Pending
+            })
+            
+            const reconstructedLogs: LogLine[] = []
+            let isFailed = false
+            let isFinal = false
+            
+            // Map stepName helper
+            const localStepNameToId: Record<string, string> = {}
+            g.steps.forEach((s) => {
+              localStepNameToId[stripAnsi(s.name)] = s.id
+            })
+
+            details.logs.forEach(event => {
+              let stepId = event.stepName && localStepNameToId[stripAnsi(event.stepName)]
+              if (!stepId && event.stepName) {
+                const fallback = Object.entries(localStepNameToId).find(([k]) => event.stepName && k.includes(stripAnsi(event.stepName!)))
+                if (fallback) stepId = fallback[1]
+              }
+              
+              if (stepId) {
+                if (event.type === 'start' && reconstructedStatuses[stepId] === ExecutionStatus.Pending) {
+                  reconstructedStatuses[stepId] = ExecutionStatus.Running
+                } else if (event.type === 'success') {
+                  reconstructedStatuses[stepId] = ExecutionStatus.Success
+                } else if (event.type === 'failure') {
+                  reconstructedStatuses[stepId] = ExecutionStatus.Failed
+                  isFailed = true
+                }
+              }
+              
+              if (event.type === 'success' || event.type === 'failure') {
+                if (event.text.includes('process-exit')) {
+                  isFinal = true
+                  if (event.type === 'failure') isFailed = true
+                }
+              }
+              
+              // Only push to array if there is actual text to log (avoids duplicating metadata-only events if any)
+              if (event.text) {
+                reconstructedLogs.push({
+                  timestamp: event.timestamp,
+                  text: event.text,
+                  stepName: event.stepName,
+                  stepId: stepId,
+                  type: event.type
+                } as LogLine) // Cast to bypass TS if LogLine types mismatch occasionally locally
+              }
+            })
+
+            setRunState({
+              status: isFinal ? (isFailed ? 'failed' : 'success') : 'running',
+              nodeStatuses: reconstructedStatuses,
+              logs: reconstructedLogs,
+              startTime: details.meta.startedAt,
+              name: details.meta.name || `Run ${targetStepId}`,
+            })
+            setEditName(details.meta.name || `Run ${targetStepId}`)
+          }
+        } catch (err) {
+          console.error('Failed to load run details:', err)
+        }
+      } else {
+        // Fallback for non-electron env
+        const visibleSteps = getTransitiveDependencies(graph, targetStepId)
+        const initialStatuses: NodeStatusesMap = {}
+        visibleSteps.forEach((id) => {
+          initialStatuses[id] = ExecutionStatus.Pending
+        })
+        setRunState(s => ({ ...s, nodeStatuses: initialStatuses }))
+      }
+      setIsLoading(false)
+    }
+    
+    loadRunDetails()
+  }, [runId, targetStepId, graph])
+
+  // Compute filtered graph and sidebar steps using runGraph
   const filteredGraph = useMemo((): PipelineGraph => {
-    const visibleSteps = getTransitiveDependencies(graph, targetStepId)
-    const filteredSteps = graph.steps.filter((s) => visibleSteps.has(s.id))
-    const filteredEdges = graph.edges.filter(
+    const visibleSteps = getTransitiveDependencies(runGraph, targetStepId)
+    const filteredSteps = runGraph.steps.filter((s) => visibleSteps.has(s.id))
+    const filteredEdges = runGraph.edges.filter(
       (e) => visibleSteps.has(e.source) && visibleSteps.has(e.target)
     )
     return {
-      ...graph,
+      ...runGraph,
       steps: filteredSteps.map((s) => ({
         ...s,
         dependencies: s.dependencies?.filter((d) => visibleSteps.has(d)),
       })),
       edges: filteredEdges,
     }
-  }, [graph, targetStepId])
+  }, [runGraph, targetStepId])
 
   // // Filter sidebar steps
   // const filteredSteps = useMemo(() => {
@@ -238,6 +326,14 @@ export function RunView({ runId, graph, targetStepId, initialName }: RunViewProp
     failed: { background: '#ef4444', color: '#fff' },
   }
 
+  if (isLoading) {
+    return (
+      <div className="run-view" data-testid="run-view" data-run-id={runId}>
+        <div style={{ padding: '20px', color: '#858585' }}>Loading run data...</div>
+      </div>
+    )
+  }
+
   return (
     <div className="run-view" data-testid="run-view" data-run-id={runId}>
       <header className="run-header">
@@ -281,7 +377,7 @@ export function RunView({ runId, graph, targetStepId, initialName }: RunViewProp
             selectedStepId={selectedStepId}
             onSelectStep={handleNodeClick}
           />
-          <Sidebar graph={graph} onSelectStep={handleNodeClick} />
+          <Sidebar graph={runGraph} onSelectStep={handleNodeClick} />
         </div>
         <div
           className="run-splitter"

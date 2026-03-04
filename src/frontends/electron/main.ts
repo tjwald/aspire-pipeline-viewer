@@ -140,8 +140,11 @@ function setupRunIpcHandlers(
 ) {
   // register ipc handlers if available
   if (ipc && typeof ipc.handle === 'function') {
-    ipc.handle('run-step', async (_evt: IpcMainInvokeEvent, stepName: unknown) => {
-      return svc.startRun(String(stepName))
+    ipc.handle('run-step', async (_evt: IpcMainInvokeEvent, stepName: unknown, graph: unknown) => {
+      return svc.startRun(
+        String(stepName),
+        graph as import('@aspire-pipeline-viewer/core').PipelineGraph | undefined
+      )
     })
 
     ipc.handle('kill-run', async (_evt: IpcMainInvokeEvent, runId: unknown) => {
@@ -150,6 +153,10 @@ function setupRunIpcHandlers(
 
     ipc.handle('rename-run', async (_evt: IpcMainInvokeEvent, runId: unknown, name: unknown) => {
       return svc.renameRun(String(runId), String(name))
+    })
+
+    ipc.handle('get-run-details', async (_evt: IpcMainInvokeEvent, runId: unknown) => {
+      return svc.getRunDetails(String(runId))
     })
   }
 
