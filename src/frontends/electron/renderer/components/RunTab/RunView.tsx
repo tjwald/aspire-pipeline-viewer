@@ -57,8 +57,6 @@ export function RunView({ runId, graph, targetStepId, initialName }: RunViewProp
     name: initialName || `Run ${targetStepId} ${new Date().toLocaleTimeString()}`,
   })
   const [elapsed, setElapsed] = useState(0)
-  const [isRenaming, setIsRenaming] = useState(false)
-  const [editName, setEditName] = useState(runState.name)
   const [isLoading, setIsLoading] = useState(true)
 
   // Utility to strip ANSI codes and normalize
@@ -172,7 +170,6 @@ export function RunView({ runId, graph, targetStepId, initialName }: RunViewProp
               startTime: details.meta.startedAt,
               name: details.meta.name || `Run ${targetStepId}`,
             })
-            setEditName(details.meta.name || `Run ${targetStepId}`)
           }
         } catch (err) {
           console.error('Failed to load run details:', err)
@@ -305,12 +302,6 @@ export function RunView({ runId, graph, targetStepId, initialName }: RunViewProp
     return () => clearInterval(interval)
   }, [runState.status, runState.startTime])
 
-  const formatElapsed = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`
-  }
-
   // Bubble up internal state to parent container so tabs can show {status icon} {name} (time s)
   useEffect(() => {
     // Dispatch a custom synthetic event so RunTabContainer can pick up live updates if needed
@@ -354,13 +345,6 @@ export function RunView({ runId, graph, targetStepId, initialName }: RunViewProp
       }
     }
   }, [isDragging, handleMouseMove, handleMouseUp])
-
-  // Status badge colors
-  const statusBadgeStyle: Record<string, React.CSSProperties> = {
-    running: { background: '#f59e0b', color: '#000' },
-    success: { background: '#22c55e', color: '#000' },
-    failed: { background: '#ef4444', color: '#fff' },
-  }
 
   if (isLoading) {
     return (

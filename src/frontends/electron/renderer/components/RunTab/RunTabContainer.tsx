@@ -284,13 +284,14 @@ function RunTabItem({
 
   // Listen for synthetic events from RunView to mirror state without heavy React Context overhead
   useEffect(() => {
-    const handleUpdate = (e: any) => {
-      if (e.detail) {
-        if (e.detail.status) setStatus(e.detail.status)
-        if (e.detail.elapsed !== undefined) setElapsed(e.detail.elapsed)
+    const handleUpdate = (e: Event) => {
+      const detail = (e as CustomEvent).detail
+      if (detail) {
+        if (detail.status) setStatus(detail.status)
+        if (detail.elapsed !== undefined) setElapsed(detail.elapsed)
         // If RunView synced a history name load, respect it here (runState.name in RunView)
         // If user initiates inline rename from tab, we override this in handleSaveRename
-        if (e.detail.name && !isRenaming) setName(e.detail.name)
+        if (detail.name && !isRenaming) setName(detail.name)
       }
     }
     window.addEventListener(`run-tab-update-${tab.runId}`, handleUpdate)

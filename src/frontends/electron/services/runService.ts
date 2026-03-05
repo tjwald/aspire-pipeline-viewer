@@ -207,10 +207,10 @@ export class RunService extends EventEmitter implements IRunService {
     }
   }
 
-  async getRunHistory(): Promise<Array<{ runId: string; name?: string; startedAt: number }>> {
+  async getRunHistory(): Promise<Array<{ runId: string; name?: string; startedAt: number; targetStepId?: string }>> {
     try {
       const files = await fs.promises.readdir(this.baseDir);
-      const metas: Array<{ runId: string; name?: string; startedAt: number }> = [];
+      const metas: Array<{ runId: string; name?: string; startedAt: number; targetStepId?: string }> = [];
 
       for (const f of files) {
         if (!f.endsWith('.meta.json')) continue;
@@ -223,7 +223,7 @@ export class RunService extends EventEmitter implements IRunService {
             name: meta.name,
             startedAt: meta.startedAt,
             targetStepId: meta.targetStepId,
-          } as any);
+          });
         } catch {
           /* ignore malformed metadata */
         }
