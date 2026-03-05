@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import type { PipelineGraph } from '@aspire-pipeline-viewer/core'
+import type { PipelineGraph, ExecutionStatus } from '@aspire-pipeline-viewer/core'
 import { calculateHierarchicalPositions, getResourceColor, wrapStepName, isAggregator, type CenterLane } from '../utils'
 import { useZoomPan } from '../hooks/useZoomPan'
+import { GraphNodeBadge } from '../../electron/renderer/components/RunTab/GraphNodeBadge'
 import '../styles/graph.css'
 
 export type GraphViewProps = {
@@ -9,12 +10,16 @@ export type GraphViewProps = {
   selectedStepId?: string
   onSelectStep?: (id: string) => void
   visibleStepIds?: Set<string>
+  onRunStep?: (stepId: string) => void
+  nodeStatuses?: Record<string, ExecutionStatus>
 }
 
-export function GraphView({ graph, selectedStepId, onSelectStep, visibleStepIds }: GraphViewProps) {
+export function GraphView({ graph, selectedStepId, onSelectStep, visibleStepIds, onRunStep, nodeStatuses }: GraphViewProps) {
   const wrapperRef = useRef<HTMLDivElement | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [hoveredStepId, setHoveredStepId] = useState<string | null>(null)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; stepId: string } | null>(null)
+  const isElectron = typeof window !== 'undefined' && window.electronAPI !== undefined
   const { zoom, zoomIn, zoomOut, resetZoom, onMouseDown, onMouseMove, onMouseUp, onMouseLeave, attachWheelZoom } =
     useZoomPan()
 
@@ -151,6 +156,21 @@ export function GraphView({ graph, selectedStepId, onSelectStep, visibleStepIds 
       onSelectStep?.(stepId)
     }
   }
+
+  // Handle right-click context menu
+  const handleNodeContextMenu = (e: React.MouseEvent, stepId: string) => {
+    if (!isElectron || !onRunStep) return
+    e.preventDefault()
+    setContextMenu({ x: e.clientX, y: e.clientY, stepId })
+  }
+
+  // Close context menu on any click
+  useEffect(() => {
+    if (!contextMenu) return
+    const handleClick = () => setContextMenu(null)
+    document.addEventListener('click', handleClick)
+    return () => document.removeEventListener('click', handleClick)
+  }, [contextMenu])
 
   const renderResourceColumns = () => {
     return resourceColumns.map((col) => (
@@ -307,6 +327,7 @@ export function GraphView({ graph, selectedStepId, onSelectStep, visibleStepIds 
         const lines = wrapStepName(step.name)
         const nodeColor = getResourceColor(step.resource)
         const isSelected = selectedStepId === step.id
+        const status = nodeStatuses?.[step.id]
 
         return (
           <g
@@ -328,8 +349,19 @@ export function GraphView({ graph, selectedStepId, onSelectStep, visibleStepIds 
               strokeWidth={1.5}
               filter="url(#shadow)"
               onClick={() => handleNodeClick(step.id)}
+              onContextMenu={(e) => handleNodeContextMenu(e, step.id)}
               style={{ cursor: 'pointer' }}
             />
+            {/* Status badge */}
+            {status && (
+              <g
+                className="graph-node-badge"
+                key={`${step.id}-${status}`}
+                transform={`translate(${pos.x + 70},${pos.y - 35})`}
+              >
+                <GraphNodeBadge status={status} x={0} y={0} />
+              </g>
+            )}
             <text x={pos.x} y={pos.y - 8} textAnchor="middle" fontSize={12} fontWeight="bold" fill="#ffffff">
               {lines.map((line, idx) => (
                 <tspan key={idx} x={pos.x} dy={idx === 0 ? '0' : '1.2em'}>
@@ -351,6 +383,7 @@ export function GraphView({ graph, selectedStepId, onSelectStep, visibleStepIds 
         
         const isSelected = selectedStepId === step.id
         const size = 45
+        const status = nodeStatuses?.[step.id]
 
         // Hexagon points
         const hexPoints = [
@@ -379,8 +412,19 @@ export function GraphView({ graph, selectedStepId, onSelectStep, visibleStepIds 
               strokeWidth={2}
               filter="url(#shadow)"
               onClick={() => handleNodeClick(step.id)}
+              onContextMenu={(e) => handleNodeContextMenu(e, step.id)}
               style={{ cursor: 'pointer' }}
             />
+            {/* Status badge for aggregator node */}
+            {status && (
+              <g
+                className="graph-node-badge"
+                key={`${step.id}-${status}`}
+                transform={`translate(${pos.x + size * 0.7},${pos.y - size * 0.7})`}
+              >
+                <GraphNodeBadge status={status} x={0} y={0} />
+              </g>
+            )}
             {/* Icon */}
             <text x={pos.x} y={pos.y - 12} textAnchor="middle" fontSize={16}>
               ⚡
@@ -441,6 +485,48 @@ export function GraphView({ graph, selectedStepId, onSelectStep, visibleStepIds 
             {renderAggregatorNodes()}
           </svg>
         </div>
+        {/* Context menu */}
+        {contextMenu && (
+          <div
+            className="graph-context-menu"
+            style={{
+              position: 'fixed',
+              left: contextMenu.x,
+              top: contextMenu.y,
+              background: '#252526',
+              border: '1px solid #3c3c3c',
+              borderRadius: '4px',
+              padding: '4px 0',
+              zIndex: 1000,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+            }}
+            data-testid="graph-context-menu"
+          >
+            <button
+              className="context-menu-item"
+              onClick={() => {
+                if (onRunStep) onRunStep(contextMenu.stepId)
+                setContextMenu(null)
+              }}
+              data-testid="context-menu-run"
+              style={{
+                display: 'block',
+                width: '100%',
+                padding: '8px 16px',
+                background: 'transparent',
+                border: 'none',
+                color: '#e0e0e0',
+                textAlign: 'left',
+                cursor: 'pointer',
+                fontSize: '13px',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = '#094771')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+            >
+              ▶️ Run this step
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

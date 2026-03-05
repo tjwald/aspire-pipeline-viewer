@@ -3,12 +3,18 @@ import { Sidebar } from '../../shared/components/Sidebar'
 import { GraphView } from '../../shared/components/GraphView'
 import { DetailsPanel } from '../../shared/components/DetailsPanel'
 import { ErrorBoundary } from '../../shared/components/ErrorBoundary'
+import { RunTabContainer, useRunTabs } from './components/RunTab'
 import type { PipelineGraph } from '@aspire-pipeline-viewer/core'
 import '../../shared/styles/base.css'
 import '../../shared/styles/sidebar.css'
 import '../../shared/styles/graph.css'
 import '../../shared/styles/details.css'
 import '../../shared/styles/toolbar.css'
+
+// Check if running in Electron environment
+const isElectron = typeof window !== 'undefined' && window.electronAPI !== undefined
+
+type ViewMode = 'graph' | 'runs'
 
 export default function App() {
   const [graph, setGraph] = useState<PipelineGraph | null>(null)
@@ -18,6 +24,14 @@ export default function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [visibleStepIds, setVisibleStepIds] = useState<Set<string> | undefined>()
+  const [viewMode, setViewMode] = useState<ViewMode>('graph')
+  const { tabs: runTabs, addTab: addRunTab, removeTab: removeRunTab } = useRunTabs()
+  
+  const handleOpenHistoricalRun = useCallback((runId: string, name: string, targetStepId: string) => {
+    // If targetStepId is missing or unknown from older logic we fall back to 'History' dummy string which is handled gracefully in RunView graph
+    addRunTab(runId, targetStepId, name)
+    setViewMode('runs')
+  }, [addRunTab])
 
   const handleOpenWorkspace = useCallback(async () => {
     if (!window.electronAPI) {
@@ -57,6 +71,24 @@ export default function App() {
     }
   }, [])
 
+  // Handler to start a run (Electron only)
+  const handleStartRun = useCallback(
+    async (stepId: string) => {
+      if (!isElectron || !window.electronAPI?.runStep) {
+        console.warn('Run functionality is only available in Electron')
+        return
+      }
+      try {
+        const runId = await window.electronAPI.runStep(stepId, graph || undefined)
+        addRunTab(runId, stepId, `Run ${stepId} ${new Date().toLocaleTimeString()}`)
+        setViewMode('runs')
+      } catch (err) {
+        console.error('Failed to start run:', err)
+      }
+    },
+    [addRunTab, graph]
+  )
+
   if (!graph) {
     return (
       <div className="app-container" style={{ display: 'flex', height: '100vh' }}>
@@ -92,17 +124,82 @@ export default function App() {
           onOpenWorkspace={handleOpenWorkspace}
         />
       </ErrorBoundary>
-      <ErrorBoundary section="Graph View">
-        <GraphView
-          graph={graph}
-          selectedStepId={selectedStepId}
-          onSelectStep={setSelectedStepId}
-          visibleStepIds={visibleStepIds}
-        />
-      </ErrorBoundary>
-      <ErrorBoundary section="Details Panel">
-        <DetailsPanel graph={graph} selectedStepId={selectedStepId} />
-      </ErrorBoundary>
+
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {/* View mode tabs (Electron only) */}
+        {isElectron && (
+          <div className="view-mode-tabs" style={{ display: 'flex', background: '#252526', borderBottom: '1px solid #3c3c3c' }}>
+            <button
+              className={`view-mode-tab ${viewMode === 'graph' ? 'active' : ''}`}
+              onClick={() => setViewMode('graph')}
+              style={{
+                padding: '8px 16px',
+                background: viewMode === 'graph' ? '#1e1e1e' : 'transparent',
+                border: 'none',
+                borderBottom: viewMode === 'graph' ? '2px solid #0e639c' : '2px solid transparent',
+                color: viewMode === 'graph' ? '#e0e0e0' : '#858585',
+                cursor: 'pointer',
+                fontSize: '13px',
+              }}
+              data-testid="view-mode-graph"
+            >
+              📊 Pipeline Graph
+            </button>
+            <button
+              className={`view-mode-tab ${viewMode === 'runs' ? 'active' : ''}`}
+              onClick={() => setViewMode('runs')}
+              style={{
+                padding: '8px 16px',
+                background: viewMode === 'runs' ? '#1e1e1e' : 'transparent',
+                border: 'none',
+                borderBottom: viewMode === 'runs' ? '2px solid #0e639c' : '2px solid transparent',
+                color: viewMode === 'runs' ? '#e0e0e0' : '#858585',
+                cursor: 'pointer',
+                fontSize: '13px',
+              }}
+              data-testid="view-mode-runs"
+            >
+              ▶️ Runs {runTabs?.length > 0 && `(${runTabs.length})`}
+            </button>
+          </div>
+        )}
+
+        {/* Main content area */}
+        <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+          {viewMode === 'graph' ? (
+            <>
+              <ErrorBoundary section="Graph View">
+                <GraphView
+                  graph={graph}
+                  selectedStepId={selectedStepId}
+                  onSelectStep={setSelectedStepId}
+                  visibleStepIds={visibleStepIds}
+                  onRunStep={isElectron ? handleStartRun : undefined}
+                />
+              </ErrorBoundary>
+              <ErrorBoundary section="Details Panel">
+                <DetailsPanel
+                  graph={graph}
+                  selectedStepId={selectedStepId}
+                  onRunStep={isElectron ? handleStartRun : undefined}
+                />
+              </ErrorBoundary>
+            </>
+          ) : (
+            <ErrorBoundary section="Run Tabs">
+              <RunTabContainer
+                graph={graph}
+                tabs={runTabs}
+                onCloseTab={removeRunTab}
+                onOpenRun={handleOpenHistoricalRun}
+              />
+            </ErrorBoundary>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
+
+// Re-export for testing purposes
+export { isElectron }

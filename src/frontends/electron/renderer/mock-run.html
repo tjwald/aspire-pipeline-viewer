@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Run Tab Mock - Aspire Pipeline Viewer</title>
+  <style>
+    :root {
+      --bg-primary: #1e1e1e;
+      --bg-secondary: #252526;
+      --bg-tertiary: #2d2d30;
+      --text-primary: #cccccc;
+      --text-secondary: #969696;
+      --border-color: #3e3e42;
+      --accent-blue: #007acc;
+      --accent-success: #89d185;
+      --accent-error: #f48771;
+      --accent-warning: #dca561;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Ubuntu', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Tab Bar */
+    .tab-bar {
+      display: flex;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      overflow-x: auto;
+    }
+
+    .tab {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-right: 1px solid var(--border-color);
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 13px;
+    }
+
+    .tab:hover {
+      background: var(--bg-tertiary);
+    }
+
+    .tab.active {
+      background: var(--bg-primary);
+    }
+
+    .tab-close {
+      margin-left: 4px;
+      opacity: 0.6;
+      cursor: pointer;
+    }
+
+    .tab-close:hover {
+      opacity: 1;
+    }
+
+    .tab-status {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .tab-status.running {
+      background: var(--accent-blue);
+      animation: pulse 1.5s infinite;
+    }
+
+    .tab-status.success {
+      background: var(--accent-success);
+    }
+
+    .tab-status.failed {
+      background: var(--accent-error);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* Run Container */
+    .run-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Run Header */
+    .run-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .run-name {
+      font-size: 16px;
+      font-weight: 600;
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-primary);
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+
+    .run-name:hover {
+      border-color: var(--border-color);
+    }
+
+    .run-name:focus {
+      outline: none;
+      border-color: var(--accent-blue);
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .status-badge.running {
+      background: rgba(0, 122, 204, 0.2);
+      color: var(--accent-blue);
+    }
+
+    .status-badge.success {
+      background: rgba(137, 209, 133, 0.2);
+      color: var(--accent-success);
+    }
+
+    .status-badge.failed {
+      background: rgba(244, 135, 113, 0.2);
+      color: var(--accent-error);
+    }
+
+    .status-icon {
+      font-size: 14px;
+    }
+
+    .run-timer {
+      color: var(--text-secondary);
+      font-size: 13px;
+      margin-left: auto;
+    }
+
+    /* Split View */
+    .split-view {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    .graph-pane {
+      flex: 1;
+      border-right: 1px solid var(--border-color);
+      background: var(--bg-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .graph-placeholder {
+      text-align: center;
+      color: var(--text-secondary);
+    }
+
+    .graph-placeholder svg {
+      width: 200px;
+      height: 150px;
+      opacity: 0.3;
+    }
+
+    /* Mock Graph Nodes */
+    .mock-graph {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .mock-node {
+      position: relative;
+      padding: 12px 24px;
+      background: var(--bg-secondary);
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      min-width: 150px;
+      text-align: center;
+    }
+
+    .mock-node.running {
+      border-color: var(--accent-blue);
+    }
+
+    .mock-node.success {
+      border-color: var(--accent-success);
+    }
+
+    .mock-node.failed {
+      border-color: var(--accent-error);
+    }
+
+    .node-badge {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: bold;
+      background: var(--bg-primary);
+    }
+
+    .node-badge.running {
+      color: var(--accent-blue);
+    }
+
+    .node-badge.success {
+      color: var(--accent-success);
+    }
+
+    .node-badge.failed {
+      color: var(--accent-error);
+    }
+
+    /* Log Pane */
+    .log-pane {
+      width: 50%;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-primary);
+    }
+
+    .log-toolbar {
+      display: flex;
+      gap: 4px;
+      padding: 8px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      align-items: center;
+    }
+
+    .log-filter-btn {
+      padding: 6px 12px;
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .log-toolbar-spacer {
+      flex: 1;
+    }
+
+    .log-expand-btn {
+      padding: 6px 10px;
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .log-filter-btn:hover {
+      background: var(--bg-tertiary);
+    }
+
+    .log-filter-btn.active {
+      background: var(--accent-blue);
+      color: white;
+      border-color: var(--accent-blue);
+    }
+
+    .log-output {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+
+    .log-line {
+      margin-bottom: 2px;
+    }
+
+    .log-line.info {
+      color: var(--accent-blue);
+    }
+
+    .log-line.success {
+      color: var(--accent-success);
+    }
+
+    .log-line.error {
+      color: var(--accent-error);
+    }
+
+    .log-line.warning {
+      color: var(--accent-warning);
+    }
+
+    .log-timestamp {
+      color: var(--text-secondary);
+    }
+
+    .log-step {
+      color: var(--accent-blue);
+    }
+  </style>
+</head>
+<body>
+  <!-- Tab Bar -->
+  <div class="tab-bar">
+    <div class="tab">
+      <span>Pipeline View</span>
+    </div>
+    <div class="tab active">
+      <span class="tab-status running"></span>
+      <span>Run lint-app</span>
+      <span class="tab-close">×</span>
+    </div>
+    <div class="tab">
+      <span class="tab-status success"></span>
+      <span>Run install-app</span>
+      <span class="tab-close">×</span>
+    </div>
+  </div>
+
+  <!-- Run Container -->
+  <div class="run-container">
+    <!-- Run Header -->
+    <div class="run-header">
+      <input type="text" class="run-name" value="Run lint-app 10:00" />
+      <div class="status-badge running">
+        <span class="status-icon">⟳</span>
+        <span>Running</span>
+      </div>
+      <div class="run-timer">5.2s elapsed</div>
+    </div>
+
+    <!-- Split View -->
+    <div class="split-view">
+      <!-- Graph Pane -->
+      <div class="graph-pane">
+        <div class="mock-graph">
+          <div class="mock-node success">
+            <span class="node-badge success">✓</span>
+            <div>install-uv-app</div>
+          </div>
+          <div class="mock-node success">
+            <span class="node-badge success">✓</span>
+            <div>install-app</div>
+          </div>
+          <div class="mock-node running">
+            <span class="node-badge running">⟳</span>
+            <div>lint-mypy-app</div>
+          </div>
+          <div class="mock-node">
+            <span class="node-badge">⋯</span>
+            <div>lint-app</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Log Pane -->
+      <div class="log-pane">
+        <div class="log-toolbar">
+          <button class="log-filter-btn active">All Logs</button>
+          <button class="log-filter-btn">Selected Step</button>
+          <div class="log-toolbar-spacer"></div>
+          <button class="log-expand-btn">Expand Logs</button>
+        </div>
+        <div class="log-output">
+<div class="log-line"><span class="log-timestamp">09:52:13</span> <span class="log-step">(pipeline-execution)</span> → Starting pipeline-execution...</div>
+<div class="log-line"><span class="log-timestamp">09:52:13</span> <span class="log-step">(install-uv-app)</span> → Starting install-uv-app...</div>
+<div class="log-line error"><span class="log-timestamp">09:52:14</span> <span class="log-step">(install-uv-app)</span> ✗ [ERR] Resolved 70 packages in 10ms</div>
+<div class="log-line error"><span class="log-timestamp">09:52:14</span> <span class="log-step">(install-uv-app)</span> ✗ [ERR] Audited 69 packages in 148ms</div>
+<div class="log-line success"><span class="log-timestamp">09:52:14</span> <span class="log-step">(install-uv-app)</span> ✓ install-uv-app completed successfully</div>
+<div class="log-line"><span class="log-timestamp">09:52:14</span> <span class="log-step">(install-app)</span> → Starting install-app...</div>
+<div class="log-line info"><span class="log-timestamp">09:52:14</span> <span class="log-step">(install-app)</span> i [INF] Installation for app completed successfully.</div>
+<div class="log-line success"><span class="log-timestamp">09:52:14</span> <span class="log-step">(install-app)</span> ✓ install-app completed successfully</div>
+<div class="log-line"><span class="log-timestamp">09:52:14</span> <span class="log-step">(lint-mypy-app)</span> → Starting lint-mypy-app...</div>
+<div class="log-line info"><span class="log-timestamp">09:52:22</span> <span class="log-step">(lint-mypy-app)</span> i [INF] Running type checks...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
