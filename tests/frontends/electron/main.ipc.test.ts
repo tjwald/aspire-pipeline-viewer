@@ -7,6 +7,9 @@ class DummyRunService extends EventEmitter {
   startRun = vi.fn(async (stepName: string) => `run-${stepName}`)
   stopRun = vi.fn(async (runId: string) => {})
   renameRun = vi.fn(async (runId: string, name: string) => {})
+  getRunDetails = vi.fn(async (runId: string) => ({ meta: { runId }, logs: [] }))
+  getRunHistory = vi.fn(async () => [])
+  getRunsDirectory = vi.fn(async () => '/mock/runs/dir')
 }
 
 // create a fake ipcMain-like handler registry to test setupRunIpcHandlers
@@ -38,6 +41,7 @@ describe('main IPC handlers and event forwarding', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
+    fakeIpc.handlers.clear()
   })
 
   it('registers handlers that call RunService methods', async () => {
@@ -49,7 +53,7 @@ describe('main IPC handlers and event forwarding', () => {
     const runStepHandler = fakeIpc.handlers.get('run-step')
     expect(runStepHandler).toBeDefined()
     const runId = await runStepHandler!(null, 'install-uv-app')
-    expect(svc.startRun).toHaveBeenCalledWith('install-uv-app')
+    expect(svc.startRun).toHaveBeenCalledWith('install-uv-app', undefined)
     expect(runId).toBe('run-install-uv-app')
 
     // invoke kill-run handler
@@ -63,6 +67,28 @@ describe('main IPC handlers and event forwarding', () => {
     expect(renameHandler).toBeDefined()
     await renameHandler!(null, 'run-install-uv-app', 'My Run')
     expect(svc.renameRun).toHaveBeenCalledWith('run-install-uv-app', 'My Run')
+    
+    // invoke get-run-details handler
+    const getDetailsHandler = fakeIpc.handlers.get('get-run-details')
+    expect(getDetailsHandler).toBeDefined()
+    await getDetailsHandler!(null, 'run-install-uv-app')
+    expect(svc.getRunDetails).toHaveBeenCalledWith('run-install-uv-app')
+    
+    // invoke get-run-history handler
+    const getHistoryHandler = fakeIpc.handlers.get('get-run-history')
+    expect(getHistoryHandler).toBeDefined()
+    await getHistoryHandler!(null)
+    expect(svc.getRunHistory).toHaveBeenCalled()
+    
+    // invoke get-runs-directory handler
+    const getDirsHandler = fakeIpc.handlers.get('get-runs-directory')
+    expect(getDirsHandler).toBeDefined()
+    await getDirsHandler!(null)
+    expect(svc.getRunsDirectory).toHaveBeenCalled()
+    
+    // invoke show-tab-context-menu handler
+    const ctxMenuHandler = fakeIpc.handlers.get('show-tab-context-menu')
+    expect(ctxMenuHandler).toBeDefined()
   })
 
   it('forwards run events to renderer via webContents.send', async () => {

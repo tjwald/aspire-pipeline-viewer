@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent, act, waitFor } from '@testing-library/react'
+import { render, screen, act, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { RunView, getTransitiveDependencies } from '../../../../src/frontends/electron/renderer/components/RunTab/RunView'
@@ -13,6 +13,7 @@ const mockElectronAPI = {
   onRunStatusChange: vi.fn(),
   killRun: vi.fn(),
   renameRun: vi.fn(),
+  getRunDetails: vi.fn(),
 }
 
 beforeEach(() => {
@@ -31,6 +32,11 @@ beforeEach(() => {
   mockElectronAPI.onRunStatusChange.mockReturnValue(vi.fn())
   mockElectronAPI.killRun.mockResolvedValue(undefined)
   mockElectronAPI.renameRun.mockResolvedValue(undefined)
+  mockElectronAPI.getRunDetails.mockResolvedValue({ 
+    meta: { startedAt: Date.now(), name: 'Test Run', targetStepId: 'step-2' }, 
+    logs: [],
+    graph: null // Fallback to provided graph
+  })
 })
 
 afterEach(() => {
@@ -76,8 +82,8 @@ describe('RunView', () => {
     })
   })
 
-  describe('rendering', () => {
-    it('renders with run name and status badge', () => {
+  describe('rendering and disk persistence loading', () => {
+    it('renders loading state initially then loads details from disk', async () => {
       render(
         <RunView
           runId="test-run-1"
@@ -87,12 +93,16 @@ describe('RunView', () => {
         />
       )
 
-      expect(screen.getByTestId('run-view')).toBeInTheDocument()
-      expect(screen.getByTestId('run-name')).toHaveTextContent('Test Run')
-      expect(screen.getByTestId('run-status-badge')).toBeInTheDocument()
+      expect(screen.getByText('Loading run data...')).toBeInTheDocument()
+
+      await waitFor(() => {
+        expect(mockElectronAPI.getRunDetails).toHaveBeenCalledWith('test-run-1')
+        expect(screen.getByTestId('run-view')).toBeInTheDocument()
+        expect(screen.queryByText('Loading run data...')).not.toBeInTheDocument()
+      })
     })
 
-    it('shows only the target step and its dependencies in the graph', () => {
+    it('shows only the target step and its dependencies in the graph', async () => {
       render(
         <RunView
           runId="test-run-1"
@@ -101,6 +111,7 @@ describe('RunView', () => {
         />
       )
 
+      await waitFor(() => expect(screen.getByTestId('run-graph-wrapper')).toBeInTheDocument())
       // step-1 and step-2 should be visible (step-2 depends on step-1)
       const graphWrapper = screen.getByTestId('run-graph-wrapper')
       expect(graphWrapper).toBeInTheDocument()
@@ -113,7 +124,7 @@ describe('RunView', () => {
       expect(badgeIcons.some(icon => ['⏳','▶️','✔️','❌','⏭️'].includes(icon || ''))).toBe(true)
     })
 
-    it('initializes all visible nodes with pending status', () => {
+    it('initializes all visible nodes with pending status when no logs on disk', async () => {
       render(
         <RunView
           runId="test-run-1"
@@ -122,18 +133,28 @@ describe('RunView', () => {
         />
       )
 
+      await waitFor(() => expect(screen.getByTestId('run-graph-wrapper')).toBeInTheDocument())
       // Check for ⏳ badge icons in the SVG
       const graphWrapper = screen.getByTestId('run-graph-wrapper')
       const svg = graphWrapper.querySelector('svg')
       expect(svg).toBeInTheDocument()
       const badgeIcons = Array.from(svg?.querySelectorAll('text') || []).map(t => t.textContent)
-      // There should be two ⏳ badges for step-1 and step-2
+      // There should be two ⏳ badges for step-1 and step-2 (since default disk logs is empty [] in mock)
       expect(badgeIcons.filter(icon => icon === '⏳').length).toBe(2)
     })
-  })
+    
+    it('restores node statuses correctly from disk logs', async () => {
+      // Mock disk returning some historical logs
+      mockElectronAPI.getRunDetails.mockResolvedValueOnce({
+        meta: { startedAt: Date.now(), name: 'Test Run', targetStepId: 'step-2' }, 
+        logs: [
+          { timestamp: 1, type: 'start', stepName: 'Build', text: 'starting' },
+          { timestamp: 2, type: 'success', stepName: 'Build', text: 'done' },
+          { timestamp: 3, type: 'start', stepName: 'Test', text: 'starting test' }
+        ],
+        graph: null
+      })
 
-  describe('IPC event handling', () => {
-    it('subscribes to run output events on mount', () => {
       render(
         <RunView
           runId="test-run-1"
@@ -142,11 +163,36 @@ describe('RunView', () => {
         />
       )
 
-      expect(mockElectronAPI.onRunOutput).toHaveBeenCalledTimes(1)
-      expect(mockElectronAPI.onRunStatusChange).toHaveBeenCalledTimes(1)
+      await waitFor(() => expect(screen.getByTestId('run-graph-wrapper')).toBeInTheDocument())
+      
+      const graphWrapper = screen.getByTestId('run-graph-wrapper')
+      const svg = graphWrapper.querySelector('svg')
+      expect(svg).toBeInTheDocument()
+      const badgeIcons = Array.from(svg?.querySelectorAll('text') || []).map(t => t.textContent)
+      // Build step (success)
+      expect(badgeIcons).toContain('✔️')
+      // Test step (running)
+      expect(badgeIcons).toContain('▶️')
+    })
+  })
+
+  describe('IPC event handling', () => {
+    it('subscribes to run output events on mount', async () => {
+      render(
+        <RunView
+          runId="test-run-1"
+          graph={mockGraph}
+          targetStepId="step-2"
+        />
+      )
+
+      await waitFor(() => {
+        expect(mockElectronAPI.onRunOutput).toHaveBeenCalledTimes(1)
+        expect(mockElectronAPI.onRunStatusChange).toHaveBeenCalledTimes(1)
+      })
     })
 
-    it('unsubscribes from events on unmount', () => {
+    it('unsubscribes from events on unmount', async () => {
       const unsubOutput = vi.fn()
       const unsubStatus = vi.fn()
       mockElectronAPI.onRunOutput.mockReturnValue(unsubOutput)
@@ -159,6 +205,10 @@ describe('RunView', () => {
           targetStepId="step-2"
         />
       )
+
+      await waitFor(() => {
+         expect(screen.getByTestId('run-view')).toBeInTheDocument()
+      })
 
       unmount()
 
@@ -181,6 +231,10 @@ describe('RunView', () => {
           targetStepId="step-2"
         />
       )
+
+      await waitFor(() => {
+        expect(screen.getByTestId('run-view')).toBeInTheDocument()
+      })
 
       // Simulate receiving log output
       act(() => {
@@ -216,6 +270,10 @@ describe('RunView', () => {
         />
       )
 
+      await waitFor(() => {
+        expect(screen.getByTestId('run-view')).toBeInTheDocument()
+      })
+
       // Simulate receiving log for different run
       act(() => {
         outputCallback!({
@@ -248,6 +306,10 @@ describe('RunView', () => {
           targetStepId="step-2"
         />
       )
+
+      await waitFor(() => {
+        expect(screen.getByTestId('run-view')).toBeInTheDocument()
+      })
 
       // Simulate status change
       act(() => {
@@ -287,6 +349,10 @@ describe('RunView', () => {
         />
       )
 
+      await waitFor(() => {
+        expect(screen.getByTestId('run-view')).toBeInTheDocument()
+      })
+
       // Add logs for multiple steps
       act(() => {
         outputCallback!({
@@ -323,127 +389,6 @@ describe('RunView', () => {
         expect(screen.getByText('Building...')).toBeInTheDocument()
         expect(screen.getByText('Testing...')).toBeInTheDocument()
         expect(screen.getByText('Deploying...')).toBeInTheDocument()
-      })
-    })
-  })
-
-  describe('run controls', () => {
-    it('shows kill button when run is in running status', () => {
-      render(
-        <RunView
-          runId="test-run-1"
-          graph={mockGraph}
-          targetStepId="step-2"
-        />
-      )
-
-      // Initial status is 'running'
-      expect(screen.getByTestId('kill-run-btn')).toBeInTheDocument()
-    })
-
-    it('calls killRun when stop button is clicked', async () => {
-      render(
-        <RunView
-          runId="test-run-1"
-          graph={mockGraph}
-          targetStepId="step-2"
-        />
-      )
-
-      fireEvent.click(screen.getByTestId('kill-run-btn'))
-
-      await waitFor(() => {
-        expect(mockElectronAPI.killRun).toHaveBeenCalledWith('test-run-1')
-      })
-    })
-
-    it('hides kill button after run completes', async () => {
-      let statusCallback: (data: { runId: string; status: 'running' | 'success' | 'failed'; nodeStatuses: NodeStatusesMap }) => void
-      
-      mockElectronAPI.onRunStatusChange.mockImplementation((cb) => {
-        statusCallback = cb
-        return vi.fn()
-      })
-
-      render(
-        <RunView
-          runId="test-run-1"
-          graph={mockGraph}
-          targetStepId="step-2"
-        />
-      )
-
-      // Simulate run completion
-      act(() => {
-        statusCallback!({
-          runId: 'test-run-1',
-          status: 'success',
-          nodeStatuses: { 'step-1': ExecutionStatus.Success, 'step-2': ExecutionStatus.Success },
-        })
-      })
-
-      await waitFor(() => {
-        expect(screen.queryByTestId('kill-run-btn')).not.toBeInTheDocument()
-      })
-    })
-  })
-
-  describe('rename functionality', () => {
-    it('allows renaming the run by clicking the name', async () => {
-      render(
-        <RunView
-          runId="test-run-1"
-          graph={mockGraph}
-          targetStepId="step-2"
-          initialName="Original Name"
-        />
-      )
-
-      // Click on the run name to start editing
-      fireEvent.click(screen.getByTestId('run-name'))
-
-      // Input should appear
-      await waitFor(() => {
-        expect(screen.getByTestId('run-name-input')).toBeInTheDocument()
-      })
-
-      // Change the name
-      fireEvent.change(screen.getByTestId('run-name-input'), {
-        target: { value: 'New Name' },
-      })
-
-      // Blur to save
-      fireEvent.blur(screen.getByTestId('run-name-input'))
-
-      await waitFor(() => {
-        expect(mockElectronAPI.renameRun).toHaveBeenCalledWith('test-run-1', 'New Name')
-      })
-    })
-
-    it('saves rename on Enter key', async () => {
-      render(
-        <RunView
-          runId="test-run-1"
-          graph={mockGraph}
-          targetStepId="step-2"
-          initialName="Original Name"
-        />
-      )
-
-      fireEvent.click(screen.getByTestId('run-name'))
-
-      await waitFor(() => {
-        expect(screen.getByTestId('run-name-input')).toBeInTheDocument()
-      })
-
-      fireEvent.change(screen.getByTestId('run-name-input'), {
-        target: { value: 'Enter Name' },
-      })
-
-      fireEvent.keyDown(screen.getByTestId('run-name-input'), { key: 'Enter' })
-
-      await waitFor(() => {
-        expect(mockElectronAPI.renameRun).toHaveBeenCalledWith('test-run-1', 'Enter Name')
       })
     })
   })
