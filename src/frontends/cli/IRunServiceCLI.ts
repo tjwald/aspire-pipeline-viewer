@@ -111,4 +111,8 @@ export class RunServiceCLI implements IRunService {
   async getRunHistory(): Promise<Array<{ runId: string; name?: string; startedAt: number }>> {
     return [];
   }
+
+  async getRunsDirectory(): Promise<string> {
+    return '';
+  }
 }
