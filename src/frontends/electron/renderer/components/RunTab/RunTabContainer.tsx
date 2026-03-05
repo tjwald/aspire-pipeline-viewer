@@ -16,7 +16,7 @@ export interface RunTabContainerProps {
 }
 
 export function RunTabContainer({ graph, tabs, onCloseTab, onOpenRun }: RunTabContainerProps & { onOpenRun?: (runId: string, name: string, targetStepId: string) => void }) {
-  const [activeTabId, setActiveTabId] = useState<string | undefined>(tabs[0]?.id)
+  const [activeTabId, setActiveTabId] = useState<string | undefined>(() => tabs[tabs.length - 1]?.id)
   const [runsDir, setRunsDir] = useState<string>('')
   const [history, setHistory] = useState<Array<{runId: string, name?: string, startedAt: number, targetStepId?: string}>>([])
   
@@ -31,20 +31,27 @@ export function RunTabContainer({ graph, tabs, onCloseTab, onOpenRun }: RunTabCo
   }, [tabs.length])
 
   // When tabs change, ensure activeTabId is valid and auto-switch to new tabs
-  const prevTabsRef = React.useRef(tabs)
+  const lastTabIdRef = React.useRef<string | undefined>(tabs[tabs.length - 1]?.id)
+
   useEffect(() => {
-    const prevTabs = prevTabsRef.current
-    if (tabs.length > prevTabs.length) {
-      // Find the new tab that was added
-      const newTab = tabs.find(t => !prevTabs.find(pt => pt.id === t.id))
-      if (newTab) {
-        setActiveTabId(newTab.id)
+    const currentLastTabId = tabs[tabs.length - 1]?.id
+    
+    if (tabs.length > 0) {
+      if (currentLastTabId !== lastTabIdRef.current) {
+        // A new tab was added (presumably at the end), switch to it
+        setActiveTabId(currentLastTabId)
+      } else if (activeTabId && !tabs.find(t => t.id === activeTabId)) {
+        // Active tab was closed/removed, fall back to last
+        setActiveTabId(currentLastTabId)
+      } else if (!activeTabId) {
+        // No active tab set but we have tabs, pick last
+        setActiveTabId(currentLastTabId)
       }
-    } else if (tabs.length > 0 && !tabs.find(t => t.id === activeTabId)) {
-      // Active tab no longer exists, switch to the last tab
-      setActiveTabId(tabs[tabs.length - 1].id)
+    } else {
+      setActiveTabId(undefined)
     }
-    prevTabsRef.current = tabs
+    
+    lastTabIdRef.current = currentLastTabId
   }, [tabs, activeTabId])
 
   const handleCloseTab = useCallback(
