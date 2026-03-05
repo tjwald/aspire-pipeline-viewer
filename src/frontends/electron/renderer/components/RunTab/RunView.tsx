@@ -21,6 +21,15 @@ interface RunState {
   name: string
 }
 
+interface RunMeta {
+  runId: string
+  name?: string
+  startedAt: number
+  logPath: string
+  targetStepId?: string
+  status?: 'running' | 'success' | 'failed'
+}
+
 /**
  * Get the transitive dependencies of a step (including the step itself)
  */
@@ -79,7 +88,7 @@ export function RunView({ runId, graph, targetStepId, initialName }: RunViewProp
     async function loadRunDetails() {
       if (window.electronAPI?.getRunDetails) {
         try {
-          const details = await window.electronAPI.getRunDetails(runId)
+          const details = (await window.electronAPI.getRunDetails(runId)) as { meta: RunMeta; graph?: PipelineGraph; logs: ParsedEvent[] } | null
           console.log('[RunView] loaded run details from disk:', details?.meta?.runId, 'hasGraph:', !!details?.graph, 'log count:', details?.logs?.length)
           if (details) {
             if (details.graph) {
@@ -164,7 +173,7 @@ export function RunView({ runId, graph, targetStepId, initialName }: RunViewProp
             })
 
             setRunState({
-              status: isFinal ? (isFailed ? 'failed' : 'success') : 'running',
+              status: details.meta.status || (isFinal ? (isFailed ? 'failed' : 'success') : 'running'),
               nodeStatuses: reconstructedStatuses,
               logs: reconstructedLogs,
               startTime: details.meta.startedAt,
@@ -304,6 +313,10 @@ export function RunView({ runId, graph, targetStepId, initialName }: RunViewProp
 
   // Bubble up internal state to parent container so tabs can show {status icon} {name} (time s)
   useEffect(() => {
+    // Don't broadcast updates until we've finished loading persisted state,
+    // otherwise we might briefly broadcast a default 'running' status for a finished run.
+    if (isLoading) return;
+
     // Dispatch a custom synthetic event so RunTabContainer can pick up live updates if needed
     // or we can rely on RunTabContainer subscribing to the IPC directly.
     // Since App state handles tab array, we will just fire a custom event on window
@@ -311,7 +324,7 @@ export function RunView({ runId, graph, targetStepId, initialName }: RunViewProp
       detail: { status: runState.status, name: runState.name, elapsed }
     });
     window.dispatchEvent(evt);
-  }, [runId, runState.status, runState.name, elapsed])
+  }, [runId, runState.status, runState.name, elapsed, isLoading])
 
   const handleNodeClick = (stepId: string) => {
     // Toggle selection - clicking same node deselects

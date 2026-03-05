@@ -21,6 +21,7 @@ interface RunMeta {
   startedAt: number;
   logPath: string;
   targetStepId?: string;
+  status: 'running' | 'success' | 'failed';
 }
 
 export class RunService extends EventEmitter implements IRunService {
@@ -62,6 +63,7 @@ export class RunService extends EventEmitter implements IRunService {
       startedAt,
       logPath,
       targetStepId: stepName,
+      status: 'running',
     };
 
     fs.mkdirSync(path.dirname(logPath), { recursive: true });
@@ -167,7 +169,21 @@ export class RunService extends EventEmitter implements IRunService {
 
       this.emit('event', { runId, event: ev });
       
-      // Update meta to indicate completion if needed (could extend meta later)
+      const finalStatus = code === 0 ? 'success' : 'failed';
+      
+      // Explicitly emit a status change so the UI knows the overall run is done
+      this.emit('run-status-change', {
+        runId,
+        status: finalStatus
+      });
+      
+      // Update meta to indicate completion on disk
+      const metaPath = path.join(this.baseDir, `${runId}.meta.json`);
+      try {
+        const currentMeta = JSON.parse(fs.readFileSync(metaPath, 'utf-8')) as RunMeta;
+        currentMeta.status = finalStatus;
+        fs.writeFileSync(metaPath, JSON.stringify(currentMeta, null, 2), 'utf-8');
+      } catch { /* ignore */ }
     });
 
     return runId;

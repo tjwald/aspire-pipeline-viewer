@@ -205,7 +205,16 @@ function setupRunIpcHandlers(
     })
     // forward status-change for terminal statuses
     if (event && (event.type === 'success' || event.type === 'failure')) {
-      win.webContents.send('run-status-change', { runId, status: event.type, nodeStatuses: undefined })
+      const mappedStatus = event.type === 'failure' ? 'failed' : 'success';
+      win.webContents.send('run-status-change', { runId, status: mappedStatus, nodeStatuses: undefined })
+    }
+  })
+
+  // Explicitly forward status changes (e.g. on process exit)
+  svc.on('run-status-change', (data: { runId: string; status: string; nodeStatuses?: Record<string, string> }) => {
+    const win = getWindow()
+    if (win) {
+      win.webContents.send('run-status-change', data)
     }
   })
 }

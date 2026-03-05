@@ -30,12 +30,21 @@ export function RunTabContainer({ graph, tabs, onCloseTab, onOpenRun }: RunTabCo
     }
   }, [tabs.length])
 
-  // When a new tab is added, automatically switch to it
+  // When tabs change, ensure activeTabId is valid and auto-switch to new tabs
+  const prevTabsRef = React.useRef(tabs)
   useEffect(() => {
-    if (tabs.length > 0 && !tabs.find(t => t.id === activeTabId)) {
-      // Active tab no longer exists, switch to the last tab (most recent)
+    const prevTabs = prevTabsRef.current
+    if (tabs.length > prevTabs.length) {
+      // Find the new tab that was added
+      const newTab = tabs.find(t => !prevTabs.find(pt => pt.id === t.id))
+      if (newTab) {
+        setActiveTabId(newTab.id)
+      }
+    } else if (tabs.length > 0 && !tabs.find(t => t.id === activeTabId)) {
+      // Active tab no longer exists, switch to the last tab
       setActiveTabId(tabs[tabs.length - 1].id)
     }
+    prevTabsRef.current = tabs
   }, [tabs, activeTabId])
 
   const handleCloseTab = useCallback(
