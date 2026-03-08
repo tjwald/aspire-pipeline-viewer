@@ -10,9 +10,9 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "strict": true,
-    "outDir": "../../../dist-electron",
+    "outDir": "./dist",
     "rootDir": "./"
   },
   "include": ["main.ts", "preload.ts"],
-  "exclude": ["renderer", "../../../dist-electron"]
+  "exclude": ["renderer", "./dist"]
 }
