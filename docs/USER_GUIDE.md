@@ -93,6 +93,48 @@ Steps are organized into vertical columns by resource type:
 - **Deployer**: Deployment steps
 - **Pipeline**: Aggregator steps (center lane)
 
+## Executing Pipeline Steps
+
+In the Electron version of the app, you can execute individual pipeline steps directly from the interface. This feature runs the selected step and all its transitive dependencies.
+
+### Starting a Step Run
+
+There are two ways to initiate a run for a specific step:
+
+1.  **From the Details Panel**: Select a step in the graph or sidebar, and click the **Run** button (play icon) in the top-right corner of the Details Panel.
+2.  **From the Graph View**: Right-click on any step node in the graph and select **Run Step**.
+
+When a run starts, the app automatically switches to the **Runs** view.
+
+### The Runs View
+
+The Runs view is organized into multiple tabs, allowing you to monitor several executions simultaneously.
+
+#### Run Tabs
+- Each run appears as a tab at the top of the interface.
+- Tabs display a status indicator:
+    - ⏳ **Yellow (Pending/Running)**: The run is currently in progress.
+    - ✓ **Green (Success)**: All steps in the execution finished successfully.
+    - ✗ **Red (Failed)**: One or more steps encountered an error.
+- **Renaming**: Right-click a tab and select **Rename** to give the run a friendly name.
+- **Timer**: Active runs show elapsed time next to the name.
+
+#### Active Run Interface
+The active run interface uses a split-screen layout:
+- **Left Panel (Graph)**: Shows a filtered version of the pipeline containing only the target step and its dependencies. Node status badges update in real-time.
+- **Right Panel (Logs)**: A dedicated log viewer that streams output from the execution.
+    - **Filtering**: Click on a node in the graph to filter logs to only that specific step.
+    - **Auto-scroll**: The viewer automatically follows new output unless you manually scroll up.
+    - **ANSI Support**: Full support for terminal colors and formatting.
+
+### Managing Run History
+
+The app automatically saves run data to your local AppData/Home directory.
+
+- **Empty State**: When no runs are active, the Runs view displays a list of **Recent Runs from Disk**.
+- **Resuming History**: Click any recent run to reload its graph state and full log history.
+- **Closing**: Click the `×` on a tab to close it. Closing the tab does not delete the log file from disk.
+
 ## Filtering and Navigation
 
 ### Sidebar Filtering
