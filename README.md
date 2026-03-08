@@ -12,8 +12,8 @@ A desktop application and CLI for visualizing Aspire application pipelines as in
 - 🎯 **Interactive DAG Visualization** - See your entire pipeline structure at a glance
 - 📊 **Resource-Based Layout** - Steps organized by resource with automatic column grouping  
 - 🔍 **Advanced Filtering** - Filter by step, resource, or tag
-- ⚡ **Step Execution** - Run individual pipeline steps with real-time output (Coming soon!)
-- 🎨 **Color-Coded Status** - Visual feedback for execution states (Coming soon!)
+- ⚡ **Step Execution** - Run individual pipeline steps with real-time output
+- 🎨 **Color-Coded Status** - Visual feedback for execution states
 - 💻 **Cross-Platform** - Works on Windows, macOS, and Linux
 - 🖥️ **CLI Support** - Parse and format pipelines from the command line
 
