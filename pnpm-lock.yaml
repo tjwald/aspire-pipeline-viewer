@@ -121,13 +121,13 @@ importers:
       '@aspire-pipeline-viewer/core':
         specifier: workspace:*
         version: link:../../core
-      electron:
-        specifier: ^39.2.7
-        version: 39.2.7
     devDependencies:
       '@types/node':
         specifier: ^22.10.5
         version: 22.19.3
+      electron:
+        specifier: ^39.2.7
+        version: 39.2.7
       typescript:
         specifier: ^5.9.3
         version: 5.9.3

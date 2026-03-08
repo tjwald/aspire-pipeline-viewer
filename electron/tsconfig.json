@@ -1,5 +1,5 @@
 {
   "extends": "../src/frontends/electron/tsconfig.json",
   "include": ["../src/frontends/electron/**/*"],
-  "exclude": ["../dist-electron"]
+  "exclude": ["../src/frontends/electron/dist"]
 }

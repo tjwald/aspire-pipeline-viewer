@@ -7,11 +7,11 @@
     "src/core",
     "src/frontends/*"
   ],
-  "main": "dist-electron/main.js",
+  "main": "src/frontends/electron/dist/main.js",
   "scripts": {
     "build": "pnpm -r run build",
     "dev:app": "pnpm --filter @aspire-pipeline-viewer/electron dev",
-    "clean": "rimraf node_modules dist dist-electron .pnpm-store playwright-report test-results || true",
+    "clean": "rimraf node_modules dist src/frontends/electron/dist .pnpm-store playwright-report test-results || true",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,md}\"",
     "lint": "eslint \"src/**/*.{ts,tsx}\" --max-warnings=0",
     "test": "pnpm -r test",

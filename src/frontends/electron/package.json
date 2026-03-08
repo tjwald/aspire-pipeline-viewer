@@ -1,11 +1,13 @@
 {
   "name": "@aspire-pipeline-viewer/electron",
   "version": "0.0.0",
+  "description": "Visual DAG viewer for Aspire pipelines - Desktop App",
+  "author": "tjwald@gmail.com",
   "private": true,
-  "main": "../../../dist-electron/main.js",
+  "main": "./dist/main.js",
   "scripts": {
-    "clean": "rimraf ../../../dist-electron",
-    "dev": "concurrently \"pnpm dev:renderer\" \"wait-on http://localhost:5174 && pnpm build:electron && electron ../../../\"",
+    "clean": "rimraf ./dist",
+    "dev": "concurrently \"pnpm dev:renderer\" \"wait-on http://localhost:5174 && pnpm build:electron && electron .\"",
     "dev:renderer": "vite --config vite.config.ts",
     "build": "pnpm clean && pnpm build:renderer && pnpm build:electron",
     "build:electron": "tsc -p tsconfig.json",
@@ -16,10 +18,10 @@
     "test": "pnpm test:unit && pnpm test:e2e"
   },
   "dependencies": {
-    "@aspire-pipeline-viewer/core": "workspace:*",
-    "electron": "^39.2.7"
+    "@aspire-pipeline-viewer/core": "workspace:*"
   },
   "devDependencies": {
+    "electron": "^39.2.7",
     "@types/node": "^22.10.5",
     "typescript": "^5.9.3"
   }

@@ -15,7 +15,7 @@ export default defineConfig({
     strictPort: true,
   },
   build: {
-    outDir: path.resolve(__dirname, '../../../dist-electron/renderer'),
+    outDir: path.resolve(__dirname, './dist/renderer'),
     emptyOutDir: true,
   },
   resolve: {
