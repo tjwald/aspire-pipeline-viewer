@@ -40,7 +40,7 @@ export class RunServiceCLI implements IRunService {
     this.runId = `${stepName}-${Date.now()}`;
     const aspireCmd = process.platform === 'win32' ? 'aspire.exe' : 'aspire';
 
-    this.currentProc = spawn(aspireCmd, ['do', stepName], {
+    this.currentProc = spawn(aspireCmd, ['do', stepName, '--non-interactive'], {
       cwd: this.cwd,
       stdio: ['pipe', 'pipe', 'pipe'],
     });

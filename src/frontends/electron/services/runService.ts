@@ -84,7 +84,7 @@ export class RunService extends EventEmitter implements IRunService {
       'utf-8'
     );
 
-    const proc = spawn('aspire', ['do', stepName], {
+    const proc = spawn('aspire', ['do', stepName, '--non-interactive'], {
       // Use 'pipe' for all 3 streams to avoid 'The handle is invalid' with .NET process
       stdio: 'pipe',
       cwd: this.workspaceDir || process.cwd(),
