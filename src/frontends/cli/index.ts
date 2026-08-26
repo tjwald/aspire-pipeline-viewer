@@ -2,7 +2,8 @@
 import fs from 'fs'
 import path from 'path'
 import readline from 'readline'
-import { DiagnosticsService, validateDirectory, validateFilePath, validateStepName } from '@aspire-pipeline-viewer/core'
+import { DiagnosticsService, validateStepName } from '@aspire-pipeline-viewer/core'
+import { validateDirectory, validateFilePath } from '@aspire-pipeline-viewer/platform-node'
 
 type CliOptions = {
   diagnosticsPath?: string
@@ -112,7 +113,8 @@ async function interactiveMode(rl: readline.Interface): Promise<{ diagnosticsPat
 import { RunServiceCLI } from './IRunServiceCLI';
 
 async function runStepCommand(directory: string, stepName: string) {
-  const { validateDirectory, validateStepName } = await import('@aspire-pipeline-viewer/core');
+  const { validateStepName } = await import('@aspire-pipeline-viewer/core');
+  const { validateDirectory } = await import('@aspire-pipeline-viewer/platform-node');
   const path = await import('path');
 
   // Validate directory

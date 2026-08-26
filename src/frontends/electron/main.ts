@@ -2,7 +2,8 @@ import { app, BrowserWindow, ipcMain, dialog, Menu, type IpcMainInvokeEvent } fr
 import path from 'path'
 import fs from 'fs'
 import { spawn } from 'child_process'
-import { validateDirectory, validateStepName, type ParsedEvent } from '@aspire-pipeline-viewer/core'
+import { validateStepName, type ParsedEvent } from '@aspire-pipeline-viewer/core'
+import { validateDirectory } from '@aspire-pipeline-viewer/platform-node'
 import { RunService } from './services/runService'
 
 let mainWindow: BrowserWindow | null = null

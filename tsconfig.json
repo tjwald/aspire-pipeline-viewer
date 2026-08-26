@@ -19,6 +19,7 @@
     "baseUrl": ".",
     "paths": {
       "@aspire-pipeline-viewer/core": ["src/core/index.ts"],
+      "@aspire-pipeline-viewer/ui": ["src/ui/index.ts"],
       "@aspire-pipeline-viewer/shared/*": ["src/frontends/shared/*"],
     }
   },

@@ -4,7 +4,8 @@
 import fs from 'fs'
 import { spawn } from 'child_process'
 import type { DiagnosticsProvider, CommandRunner, Logger } from '@aspire-pipeline-viewer/core'
-import { ConsoleLogger, validateDirectory, validateFilePath } from '@aspire-pipeline-viewer/core'
+import { ConsoleLogger } from '@aspire-pipeline-viewer/core'
+import { validateDirectory, validateFilePath } from '@aspire-pipeline-viewer/platform-node'
 
 export class NodeDiagnosticsProvider implements DiagnosticsProvider {
   private diagnosticsPath: string

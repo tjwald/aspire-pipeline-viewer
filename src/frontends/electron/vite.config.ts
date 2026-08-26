@@ -22,6 +22,8 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, 'renderer'),
       '@aspire-pipeline-viewer/core': path.resolve(__dirname, '../../core/index.ts'),
+      '@aspire-pipeline-viewer/shared': path.resolve(__dirname, '../shared'),
+      '@aspire-pipeline-viewer/shared/components/Sidebar.tsx': path.resolve(__dirname, '../shared/components/Sidebar.tsx'),
     },
   },
 })

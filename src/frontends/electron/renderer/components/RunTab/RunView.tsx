@@ -1,7 +1,7 @@
 import React, { useMemo, useEffect, useState, useCallback } from 'react'
 import { GraphView } from '../../../../shared/components/GraphView'
 import { LogViewer, type LogLine } from './LogViewer'
-import { Sidebar } from '../../../../shared/components/Sidebar'
+import Sidebar from '@aspire-pipeline-viewer/shared/components/Sidebar.tsx'
 import type { NodeStatusesMap } from './GraphNodeBadge'
 import { ExecutionStatus, ParsedEvent } from '@aspire-pipeline-viewer/core'
 import type { PipelineGraph } from '@aspire-pipeline-viewer/core'
