@@ -1,1 +1,0 @@
-export { parseLogLine } from '../domain/logParser'

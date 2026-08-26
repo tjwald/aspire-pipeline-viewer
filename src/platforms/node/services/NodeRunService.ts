@@ -2,10 +2,9 @@ import { EventEmitter } from 'events'
 import path from 'path'
 import fs from 'fs'
 import {
-  parseLogLine,
+  RunEngine,
   type IRunService,
   type PipelineGraph,
-  type ParsedEvent,
   type RunMeta,
   type RunDetails,
 } from '@aspire-pipeline-viewer/core'
@@ -24,20 +23,24 @@ function getDefaultUserDataPath(): string {
 }
 
 export class NodeRunService extends EventEmitter implements IRunService {
+  private engine = new RunEngine()
   private runs = new Map<
     string,
     { managedProc?: ManagedProcess; meta: RunMeta; writeStream?: fs.WriteStream }
   >()
 
   private processManager: ProcessManager
-  private runStore: FileRunStore
+  private runStore?: FileRunStore
   private workspaceDir?: string
 
-  constructor(userDataDir?: string, processManager?: ProcessManager) {
+  constructor(userDataDir?: string, processManager?: ProcessManager, persistRuns = true) {
     super()
     const runsBaseDir = userDataDir || path.join(getDefaultUserDataPath(), 'runs')
-    this.runStore = new FileRunStore(runsBaseDir)
+    this.runStore = persistRuns ? new FileRunStore(runsBaseDir) : undefined
     this.processManager = processManager || new ProcessManager()
+
+    this.engine.onOutput((payload) => this.emit('event', payload))
+    this.engine.onStatusChange((payload) => this.emit('run-status-change', payload))
   }
 
   setWorkspaceDirectory(dir: string): void {
@@ -48,14 +51,16 @@ export class NodeRunService extends EventEmitter implements IRunService {
     return this.processManager
   }
 
-  getRunStore(): FileRunStore {
+  getRunStore(): FileRunStore | undefined {
     return this.runStore
   }
 
   async startRun(stepName: string, graph?: PipelineGraph): Promise<string> {
     const runId = `run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     const startedAt = Date.now()
-    const logPath = path.join(this.runStore.getRunsDirectory(), `${runId}.log`)
+    const logPath = this.runStore
+      ? path.join(this.runStore.getRunsDirectory(), `${runId}.log`)
+      : ''
 
     const meta: RunMeta = {
       runId,
@@ -66,70 +71,73 @@ export class NodeRunService extends EventEmitter implements IRunService {
       status: 'running',
     }
 
-    await this.runStore.saveInitialRun(runId, meta, graph)
+    await this.runStore?.saveInitialRun(runId, meta, graph)
 
-    const ws = fs.createWriteStream(logPath, { flags: 'a' })
+    this.engine.startRun(
+      runId,
+      graph || { id: runId, steps: [{ id: stepName, name: stepName }], edges: [] },
+      stepName
+    )
+
+    const ws = logPath ? fs.createWriteStream(logPath, { flags: 'a' }) : undefined
+    const writeStreamReady = ws
+      ? new Promise<void>((resolve, reject) => {
+          ws.once('open', () => resolve())
+          ws.once('error', reject)
+        })
+      : Promise.resolve()
 
     const managedProc = this.processManager.spawn('aspire', ['do', stepName, '--non-interactive'], {
       cwd: this.workspaceDir || process.cwd(),
       onRawStdout: (chunk) => {
         try {
-          ws.write(chunk)
+          ws?.write(chunk)
         } catch {
           // ignore
         }
+        this.engine.ingest(runId, 'stdout', chunk)
       },
       onRawStderr: (chunk) => {
         try {
-          ws.write(chunk)
+          ws?.write(chunk)
         } catch {
           // ignore
         }
-      },
-      onStdoutLine: (line) => {
-        const ev = parseLogLine(line)
-        if (ev) this.emit('event', { runId, event: ev })
-      },
-      onStderrLine: (line) => {
-        const ev = parseLogLine(line)
-        if (ev) this.emit('event', { runId, event: ev })
+        this.engine.ingest(runId, 'stderr', chunk)
       },
     })
 
     this.runs.set(runId, { managedProc, meta, writeStream: ws })
 
     managedProc.completion.then(async ({ code }) => {
+      this.engine.flush(runId)
+
       try {
-        ws.end()
+        ws?.end()
       } catch {
         // ignore
       }
 
       const finalText = `${new Date().toISOString()} (system) → process-exit code=${code}\n`
       try {
-        await this.runStore.appendLog(runId, finalText)
+        await this.runStore?.appendLog(runId, finalText)
       } catch {
         // ignore
       }
 
-      const ev: ParsedEvent = {
+      this.engine.recordSyntheticEvent(runId, {
         timestamp: Date.now(),
         type: code === 0 ? 'success' : 'failure',
         text: finalText,
-      }
-
-      this.emit('event', { runId, event: ev })
-
-      const finalStatus: 'success' | 'failed' = code === 0 ? 'success' : 'failed'
-
-      this.emit('run-status-change', {
-        runId,
-        status: finalStatus,
       })
 
-      await this.runStore.updateMeta(runId, { status: finalStatus })
+      const finalStatus: 'success' | 'failed' = code === 0 ? 'success' : 'failed'
+      this.engine.finishRun(runId, code ?? 1)
+
+      await this.runStore?.updateMeta(runId, { status: finalStatus })
     })
 
+    await writeStreamReady
     return runId
   }
 
@@ -142,21 +150,36 @@ export class NodeRunService extends EventEmitter implements IRunService {
     } catch {
       // ignore
     }
+
+    try {
+      rec.writeStream?.end()
+    } catch {
+      // ignore
+    }
+
+    this.runs.delete(runId)
+    this.engine.removeRun(runId)
   }
 
   async renameRun(runId: string, name: string): Promise<void> {
-    await this.runStore.renameRun(runId, name)
+    await this.runStore?.renameRun(runId, name)
   }
 
   async getRunDetails(runId: string): Promise<RunDetails | null> {
-    return this.runStore.getRunDetails(runId)
+    const details = await this.runStore?.getRunDetails(runId)
+    if (!details) return null
+
+    const activeState = this.engine.getRunState(runId)
+    return activeState
+      ? { ...details, logs: activeState.logs, nodeStatuses: activeState.nodeStatuses }
+      : details
   }
 
   async getRunHistory(): Promise<Array<{ runId: string; name?: string; startedAt: number; targetStepId?: string }>> {
-    return this.runStore.getRunHistory()
+    return this.runStore?.getRunHistory() ?? []
   }
 
   async getRunsDirectory(): Promise<string> {
-    return this.runStore.getRunsDirectory()
+    return this.runStore?.getRunsDirectory() ?? ''
   }
 }

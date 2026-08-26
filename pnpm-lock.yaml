@@ -127,9 +127,6 @@ importers:
       '@aspire-pipeline-viewer/platform-node':
         specifier: workspace:*
         version: link:../../platforms/node
-      '@aspire-pipeline-viewer/ui':
-        specifier: workspace:*
-        version: link:../../ui
     devDependencies:
       '@types/node':
         specifier: ^22.10.5
@@ -175,28 +172,6 @@ importers:
       '@types/node':
         specifier: ^22.10.5
         version: 22.19.3
-      typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
-
-  src/ui:
-    dependencies:
-      '@aspire-pipeline-viewer/core':
-        specifier: workspace:*
-        version: link:../core
-      react:
-        specifier: ^19.2.3
-        version: 19.2.3
-      reactflow:
-        specifier: ^11.11.4
-        version: 11.11.4(@types/react@19.2.7)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-    devDependencies:
-      '@types/react':
-        specifier: ^19.2.7
-        version: 19.2.7
-      '@types/react-dom':
-        specifier: ^19.2.3
-        version: 19.2.3(@types/react@19.2.7)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3

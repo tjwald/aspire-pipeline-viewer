@@ -6,7 +6,6 @@
   "workspaces": [
     "src/core",
     "src/platforms/*",
-    "src/ui",
     "src/frontends/*"
   ],
   "main": "src/frontends/electron/dist/main.js",

@@ -19,8 +19,7 @@
   },
   "dependencies": {
     "@aspire-pipeline-viewer/core": "workspace:*",
-    "@aspire-pipeline-viewer/platform-node": "workspace:*",
-    "@aspire-pipeline-viewer/ui": "workspace:*"
+    "@aspire-pipeline-viewer/platform-node": "workspace:*"
   },
   "devDependencies": {
     "electron": "^39.2.7",

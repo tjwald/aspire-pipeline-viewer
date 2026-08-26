@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
-import type { ParsedEvent } from '@aspire-pipeline-viewer/core'
+import type { ParsedEvent, RunStatusChange } from '@aspire-pipeline-viewer/core'
 
 type RunOutputEvent = { runId: string; event: ParsedEvent & { stepId?: string } }
 
@@ -31,8 +31,8 @@ const electronAPI = {
     ipcRenderer.on('run-output', handler)
     return () => ipcRenderer.removeListener('run-output', handler)
   },
-  onRunStatusChange: (cb: (event: { runId: string; status: string; nodeStatuses?: Record<string, string> }) => void) => {
-    const handler = (_e: IpcRendererEvent, data: { runId: string; status: string; nodeStatuses?: Record<string, string> }) => cb(data)
+  onRunStatusChange: (cb: (event: RunStatusChange) => void) => {
+    const handler = (_e: IpcRendererEvent, data: RunStatusChange) => cb(data)
     ipcRenderer.on('run-status-change', handler)
     return () => ipcRenderer.removeListener('run-status-change', handler)
   },
@@ -41,9 +41,3 @@ const electronAPI = {
 contextBridge.exposeInMainWorld('electronAPI', electronAPI)
 
 export type ElectronAPI = typeof electronAPI
-
-declare global {
-  interface Window {
-    electronAPI: ElectronAPI
-  }
-}

@@ -3,13 +3,11 @@ import path from 'path'
 import fs from 'fs'
 import { spawn } from 'child_process'
 import { validateStepName, type RunEngineEvent } from '@aspire-pipeline-viewer/core'
-import { validateDirectory } from '@aspire-pipeline-viewer/platform-node'
-import { RunService } from './services/runService'
+import { NodeRunService, validateDirectory } from '@aspire-pipeline-viewer/platform-node'
 
 let mainWindow: BrowserWindow | null = null
 
-// create a shared RunService instance for the app
-const runService = new RunService()
+const runService = new NodeRunService()
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -133,7 +131,7 @@ type RunEventPayload = RunEngineEvent
 // Exported setup function for run-related IPC handlers and event forwarding.
 function setupRunIpcHandlers(
   ipc: { handle?: IpcHandleFunction },
-  svc: RunService,
+  svc: NodeRunService,
   getWindow: () => BrowserWindow | null
 ) {
   // register ipc handlers if available

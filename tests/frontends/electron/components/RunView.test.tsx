@@ -5,7 +5,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { RunView, getTransitiveDependencies } from '../../../../src/frontends/electron/renderer/components/RunTab/RunView'
 import type { PipelineGraph, ParsedEvent } from '@aspire-pipeline-viewer/core'
 import { ExecutionStatus } from '@aspire-pipeline-viewer/core'
-import type { NodeStatusesMap } from '../../../../src/frontends/electron/renderer/components/RunTab/GraphNodeBadge'
+import type { NodeStatusesMap } from '../../../../src/frontends/shared/components/GraphNodeBadge'
 
 // Mock electronAPI
 const mockElectronAPI = {

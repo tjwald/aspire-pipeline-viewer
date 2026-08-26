@@ -22,7 +22,7 @@ class FakeChildProcess extends EventEmitter {
   }
 }
 
-describe('RunService active run hydration', () => {
+describe('NodeRunService active run hydration', () => {
   let tempDir: string
 
   beforeEach(() => {
@@ -38,8 +38,8 @@ describe('RunService active run hydration', () => {
     const child = new FakeChildProcess()
     spawnMock.mockReturnValue(child)
 
-    const { RunService } = await import('../../../src/frontends/electron/services/runService')
-    const service = new RunService(tempDir)
+    const { NodeRunService } = await import('../../../src/platforms/node/services/NodeRunService')
+    const service = new NodeRunService(tempDir)
     const runId = await service.startRun('lint-frontend')
 
     child.stdout.emit(
@@ -71,8 +71,8 @@ describe('RunService active run hydration', () => {
     const child = new FakeChildProcess()
     spawnMock.mockReturnValue(child)
 
-    const { RunService } = await import('../../../src/frontends/electron/services/runService')
-    const service = new RunService(tempDir)
+    const { NodeRunService } = await import('../../../src/platforms/node/services/NodeRunService')
+    const service = new NodeRunService(tempDir)
     const outputListener = vi.fn()
     const statusListener = vi.fn()
     service.on('event', outputListener)
@@ -110,8 +110,8 @@ describe('RunService active run hydration', () => {
     const secondChild = new FakeChildProcess()
     spawnMock.mockReturnValueOnce(firstChild).mockReturnValueOnce(secondChild)
 
-    const { RunService } = await import('../../../src/frontends/electron/services/runService')
-    const service = new RunService(tempDir)
+    const { NodeRunService } = await import('../../../src/platforms/node/services/NodeRunService')
+    const service = new NodeRunService(tempDir)
     const firstRunId = await service.startRun('first-step')
     const secondRunId = await service.startRun('second-step')
 

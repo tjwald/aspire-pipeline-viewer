@@ -1,10 +1,10 @@
 import React, { useMemo, useEffect, useState, useCallback, useRef } from 'react'
 import { GraphView } from '../../../../shared/components/GraphView'
 import { Sidebar } from '../../../../shared/components/Sidebar'
+import type { NodeStatusesMap } from '../../../../shared/components/GraphNodeBadge'
 import { LogViewer, type LogLine } from './LogViewer'
-import type { NodeStatusesMap } from './GraphNodeBadge'
 import { ExecutionStatus, ParsedEvent } from '@aspire-pipeline-viewer/core'
-import type { PipelineGraph } from '@aspire-pipeline-viewer/core'
+import type { PipelineGraph, RunStatusChange, StepStatus } from '@aspire-pipeline-viewer/core'
 
 export interface RunViewProps {
   runId: string
@@ -34,7 +34,7 @@ interface RunDetailsResponse {
   meta: RunMeta
   graph?: PipelineGraph
   logs: (ParsedEvent & { stepId?: string })[]
-  nodeStatuses?: Record<string, ExecutionStatus>
+  nodeStatuses?: Record<string, StepStatus>
 }
 
 interface RunOutputData {
@@ -42,11 +42,7 @@ interface RunOutputData {
   event: ParsedEvent & { stepId?: string }
 }
 
-interface RunStatusData {
-  runId: string
-  status: 'running' | 'success' | 'failed'
-  nodeStatuses?: Record<string, ExecutionStatus>
-}
+type RunStatusData = RunStatusChange
 
 /**
  * Get the transitive dependencies of a step (including the step itself)

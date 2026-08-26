@@ -3,7 +3,7 @@ import fs from 'fs'
 import path from 'path'
 import readline from 'readline'
 import { DiagnosticsService, validateStepName } from '@aspire-pipeline-viewer/core'
-import { validateDirectory, validateFilePath } from '@aspire-pipeline-viewer/platform-node'
+import { NodeRunService, validateDirectory, validateFilePath } from '@aspire-pipeline-viewer/platform-node'
 
 type CliOptions = {
   diagnosticsPath?: string
@@ -110,8 +110,6 @@ async function interactiveMode(rl: readline.Interface): Promise<{ diagnosticsPat
   return { diagnosticsPath }
 }
 
-import { RunServiceCLI } from './IRunServiceCLI';
-
 async function runStepCommand(directory: string, stepName: string) {
   const { validateStepName } = await import('@aspire-pipeline-viewer/core');
   const { validateDirectory } = await import('@aspire-pipeline-viewer/platform-node');
@@ -132,8 +130,8 @@ async function runStepCommand(directory: string, stepName: string) {
     process.exit(1);
   }
 
-  // Use CLI-side IRunService
-  const runService = new RunServiceCLI(resolvedDir);
+  const runService = new NodeRunService(undefined, undefined, false);
+  runService.setWorkspaceDirectory(resolvedDir);
   runService.on('event', ({ runId: _runId, event }) => {
     // Output all events as JSON
     console.log(JSON.stringify(event));
@@ -141,8 +139,6 @@ async function runStepCommand(directory: string, stepName: string) {
 
   try {
     const _runId = await runService.startRun(stepName);
-    // Wait for process to finish (handled by RunServiceCLI)
-    // Optionally, add graceful shutdown or error handling here
   } catch (err) {
     console.error(`❌ Failed to run step: ${err instanceof Error ? err.message : String(err)}`);
     process.exit(1);

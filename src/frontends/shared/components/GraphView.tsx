@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import type { PipelineGraph, ExecutionStatus } from '@aspire-pipeline-viewer/core'
+import type { PipelineGraph, StepStatus } from '@aspire-pipeline-viewer/core'
 import { calculateHierarchicalPositions, getResourceColor, wrapStepName, isAggregator, type CenterLane } from '../utils'
 import { useZoomPan } from '../hooks/useZoomPan'
-import { GraphNodeBadge } from '../../electron/renderer/components/RunTab/GraphNodeBadge'
+import { GraphNodeBadge } from './GraphNodeBadge'
 import '../styles/graph.css'
 
 export type GraphViewProps = {
@@ -11,7 +11,7 @@ export type GraphViewProps = {
   onSelectStep?: (id: string) => void
   visibleStepIds?: Set<string>
   onRunStep?: (stepId: string) => void
-  nodeStatuses?: Record<string, ExecutionStatus>
+  nodeStatuses?: Record<string, StepStatus>
 }
 
 export function GraphView({ graph, selectedStepId, onSelectStep, visibleStepIds, onRunStep, nodeStatuses }: GraphViewProps) {
