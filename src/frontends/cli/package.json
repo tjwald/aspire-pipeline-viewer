@@ -6,7 +6,8 @@
     "aspire-cli": "dist/index.js"
   },
   "dependencies": {
-    "@aspire-pipeline-viewer/core": "workspace:*"
+    "@aspire-pipeline-viewer/core": "workspace:*",
+    "@aspire-pipeline-viewer/platform-node": "workspace:*"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

@@ -5,6 +5,7 @@
   "description": "Visual DAG viewer for Aspire pipelines",
   "workspaces": [
     "src/core",
+    "src/platforms/*",
     "src/frontends/*"
   ],
   "main": "src/frontends/electron/dist/main.js",

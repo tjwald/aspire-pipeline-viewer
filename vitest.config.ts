@@ -6,6 +6,7 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
       '@aspire-pipeline-viewer/core': path.resolve(__dirname, './src/core'),
+      '@aspire-pipeline-viewer/platform-node': path.resolve(__dirname, './src/platforms/node'),
       '@aspire-pipeline-viewer/shared': path.resolve(__dirname, './src/frontends/shared'),
       '@aspire-pipeline-viewer/shared/components': path.resolve(__dirname, './src/frontends/shared/components'),
       '@aspire-pipeline-viewer/shared/components/*': path.resolve(__dirname, './src/frontends/shared/components'),

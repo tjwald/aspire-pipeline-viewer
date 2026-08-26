@@ -52,6 +52,49 @@ describe('LogParser', () => {
     expect(ev!.stepName).toBeUndefined()
     expect(typeof ev!.timestamp).toBe('number')
   })
+
+  it('preserves unstructured summary lines verbatim', () => {
+    const line = '------------------------------------------------------------'
+    const ev = parseLogLine(line, ref)
+
+    expect(ev).toEqual({
+      timestamp: ref,
+      type: 'line',
+      text: line,
+      source: line,
+    })
+  })
+
+  it('preserves the original structured line separately from parsed message text', () => {
+    const line = '20:27:46 (lint-frontend) i [INF] All checks passed!'
+    const ev = parseLogLine(line, ref)
+
+    expect(ev?.text).toBe('[INF] All checks passed!')
+    expect(ev?.source).toBe(line)
+  })
+
+  it('parses a structured Windows CRLF line without losing its step scope', () => {
+    const line = '20:27:46 (lint-frontend) → Starting lint-frontend...\r'
+    const ev = parseLogLine(line, ref)
+
+    expect(ev).toMatchObject({
+      stepName: 'lint-frontend',
+      type: 'start',
+      text: 'Starting lint-frontend...',
+    })
+    expect(ev?.source).toBe(line)
+  })
+
+  it('treats ERR-prefixed step output as non-terminal output', () => {
+    const line = '20:27:46 (install-uv-app) ✗ [ERR] Resolved 70 packages in 1ms'
+    const ev = parseLogLine(line, ref)
+
+    expect(ev).toMatchObject({
+      stepName: 'install-uv-app',
+      type: 'line',
+      text: '[ERR] Resolved 70 packages in 1ms',
+    })
+  })
 })
 
 describe('LogParser OSC/ANSI edge cases', () => {
@@ -131,8 +174,8 @@ describe('LogParser regression: aspire lint output', () => {
     { stepName: 'lint-frontend', type: 'start' },
     { stepName: 'lint-frontend', type: 'line' },
     { stepName: 'lint-frontend', type: 'success' },
-    { stepName: 'install-uv-app', type: 'failure' },
-    { stepName: 'install-uv-app', type: 'failure' },
+    { stepName: 'install-uv-app', type: 'line' },
+    { stepName: 'install-uv-app', type: 'line' },
     { stepName: 'install-uv-app', type: 'success' },
     { stepName: 'install-app', type: 'start' },
     { stepName: 'install-app', type: 'line' },
@@ -140,7 +183,7 @@ describe('LogParser regression: aspire lint output', () => {
     { stepName: 'lint-lock-check-app', type: 'start' },
     { stepName: 'lint-ruff-app', type: 'start' },
     { stepName: 'lint-mypy-app', type: 'start' },
-    { stepName: 'lint-lock-check-app', type: 'failure' },
+    { stepName: 'lint-lock-check-app', type: 'line' },
     { stepName: 'lint-lock-check-app', type: 'success' },
     { stepName: 'lint-ruff-app', type: 'line' },
     { stepName: 'lint-ruff-app', type: 'success' },

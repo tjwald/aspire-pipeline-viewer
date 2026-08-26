@@ -1,4 +1,4 @@
-import type { PipelineGraph, PipelineStep, PipelineEdge } from './types/pipeline'
+import type { PipelineGraph, PipelineStep, PipelineEdge } from './types'
 
 export function parseDiagnostics(text: string): PipelineGraph {
   // Strip log prefixes like "HH:MM:SS (context) i "

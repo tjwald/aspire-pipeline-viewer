@@ -2,13 +2,12 @@ import { app, BrowserWindow, ipcMain, dialog, Menu, type IpcMainInvokeEvent } fr
 import path from 'path'
 import fs from 'fs'
 import { spawn } from 'child_process'
-import { validateDirectory, validateStepName, type ParsedEvent } from '@aspire-pipeline-viewer/core'
-import { RunService } from './services/runService'
+import { validateStepName, type RunEngineEvent } from '@aspire-pipeline-viewer/core'
+import { NodeRunService, validateDirectory } from '@aspire-pipeline-viewer/platform-node'
 
 let mainWindow: BrowserWindow | null = null
 
-// create a shared RunService instance for the app
-const runService = new RunService()
+const runService = new NodeRunService()
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -127,15 +126,12 @@ type IpcHandleFunction = (
 ) => void
 
 // Type for run event payload
-interface RunEventPayload {
-  runId: string
-  event: ParsedEvent
-}
+type RunEventPayload = RunEngineEvent
 
 // Exported setup function for run-related IPC handlers and event forwarding.
 function setupRunIpcHandlers(
   ipc: { handle?: IpcHandleFunction },
-  svc: RunService,
+  svc: NodeRunService,
   getWindow: () => BrowserWindow | null
 ) {
   // register ipc handlers if available
@@ -197,20 +193,10 @@ function setupRunIpcHandlers(
   svc.on('event', (payload: RunEventPayload) => {
     const win = getWindow()
     if (!win) return
-    const { runId, event } = payload
-    // forward general output events - send ParsedEvent directly
-    win.webContents.send('run-output', {
-      runId,
-      event
-    })
-    // forward status-change for terminal statuses
-    if (event && (event.type === 'success' || event.type === 'failure')) {
-      const mappedStatus = event.type === 'failure' ? 'failed' : 'success';
-      win.webContents.send('run-status-change', { runId, status: mappedStatus, nodeStatuses: undefined })
-    }
+    win.webContents.send('run-output', payload)
   })
 
-  // Explicitly forward status changes (e.g. on process exit)
+  // forward per-step and final status changes computed by the core RunEngine
   svc.on('run-status-change', (data: { runId: string; status: string; nodeStatuses?: Record<string, string> }) => {
     const win = getWindow()
     if (win) {

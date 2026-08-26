@@ -1,7 +1,6 @@
-/**
- * Default logger implementation (console-based)
- */
-export class ConsoleLogger {
+import type { Logger } from '../ports/interfaces'
+
+export class ConsoleLogger implements Logger {
   log(message: string): void {
     console.log(message)
   }

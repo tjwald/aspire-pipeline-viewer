@@ -1,24 +1,26 @@
 import React from 'react'
 import { ExecutionStatus } from '@aspire-pipeline-viewer/core'
+import type { StepStatus } from '@aspire-pipeline-viewer/core'
+
+export type GraphNodeStatus = StepStatus | ExecutionStatus.Skipped
 
 export interface GraphNodeBadgeProps {
-  status: ExecutionStatus
+  status: GraphNodeStatus
   x: number
   y: number
 }
 
-const statusConfig: Record<ExecutionStatus, { symbol: string; color: string; bgColor: string }> = {
-  pending: { symbol: '⏳', color: '#bdbdbd', bgColor: 'rgba(189,189,189,0.2)' },
-  running: { symbol: '▶️', color: '#2196f3', bgColor: 'rgba(33,150,243,0.2)' },
-  success: { symbol: '✔️', color: '#43a047', bgColor: 'rgba(67,160,71,0.2)' },
-  failed: { symbol: '❌', color: '#e53935', bgColor: 'rgba(229,57,53,0.2)' },
-  skipped: { symbol: '⏭️', color: '#bdbdbd', bgColor: 'rgba(189,189,189,0.2)' },
+const statusConfig: Record<GraphNodeStatus, { symbol: string; color: string }> = {
+  pending: { symbol: '⏳', color: '#bdbdbd' },
+  running: { symbol: '▶️', color: '#2196f3' },
+  success: { symbol: '✔️', color: '#43a047' },
+  failed: { symbol: '❌', color: '#e53935' },
+  skipped: { symbol: '⏭️', color: '#bdbdbd' },
 }
 
 export function GraphNodeBadge({ status, x, y }: GraphNodeBadgeProps) {
   return (
-    <g className={`graph-node-badge status-${status}`} data-testid={`badge-${status}`}
-      >
+    <g className={`graph-node-badge status-${status}`} data-testid={`badge-${status}`}>
       <title>{status.charAt(0).toUpperCase() + status.slice(1)}</title>
       <circle
         cx={x}
@@ -43,6 +45,4 @@ export function GraphNodeBadge({ status, x, y }: GraphNodeBadgeProps) {
   )
 }
 
-export interface NodeStatusesMap {
-  [stepId: string]: ExecutionStatus
-}
+export type NodeStatusesMap = Record<string, StepStatus>

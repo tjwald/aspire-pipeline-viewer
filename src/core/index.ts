@@ -1,20 +1,40 @@
-export { ExecutionStatus } from './types/pipeline';
-export type { PipelineGraph, PipelineStep, PipelineEdge } from './types/pipeline';
-export { filterGraphForTarget } from './graphUtils';
-export { parseDiagnostics } from './diagnosticsParser';
-export { DiagnosticsFormatter } from './diagnosticsFormatter';
-export type { OutputFormat } from './diagnosticsFormatter';
-export { DiagnosticsService } from './diagnosticsService';
+// Domain types and models
+export { ExecutionStatus } from './domain/types'
+export type {
+  PipelineGraph,
+  PipelineStep,
+  PipelineEdge,
+  ParsedEvent,
+  ParsedEventType,
+} from './domain/types'
+
+// Domain algorithms & parsers
+export { filterGraphForTarget } from './domain/graphUtils'
+export { parseDiagnostics } from './domain/diagnosticsParser'
+export { DiagnosticsFormatter } from './domain/diagnosticsFormatter'
+export type { OutputFormat } from './domain/diagnosticsFormatter'
+export { parseLogLine } from './domain/logParser'
+export { validateStepName } from './domain/security'
+export { normalizeStepToken, buildStepAliasMap, resolveStepId, nextStepStatus } from './domain/stepResolution'
+
+// Port interfaces
 export type {
   DiagnosticsProvider,
   CommandRunner,
   DirectoryChooser,
   Logger,
   ServiceContainer,
-  ParsedEvent,
   IRunService,
-  ParsedEventType,
   IEventStream,
-} from './services';
-export { parseLogLine, ConsoleLogger } from './services';
-export { validateDirectory, validateStepName, validateFilePath } from './security';
+  RunMeta,
+  RunDetails,
+  PipelineViewerCapabilities,
+} from './ports/interfaces'
+
+// Application services & logging
+export { DiagnosticsService } from './application/diagnosticsService'
+export { ConsoleLogger } from './application/logger'
+export { RunEngine } from './application/runEngine'
+export type { StepStatus, RunEngineEvent, RunStatusChange } from './application/runEngine'
+
+

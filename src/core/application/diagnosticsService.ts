@@ -1,8 +1,26 @@
-import { parseDiagnostics } from './diagnosticsParser'
-import { DiagnosticsFormatter, type OutputFormat } from './diagnosticsFormatter'
-import type { PipelineGraph } from './types/pipeline'
+import { parseDiagnostics } from '../domain/diagnosticsParser'
+import { DiagnosticsFormatter, type OutputFormat } from '../domain/diagnosticsFormatter'
+import type { PipelineGraph } from '../domain/types'
+import type { DiagnosticsProvider } from '../ports/interfaces'
 
 export class DiagnosticsService {
+  private diagnosticsProvider?: DiagnosticsProvider
+
+  constructor(diagnosticsProvider?: DiagnosticsProvider) {
+    this.diagnosticsProvider = diagnosticsProvider
+  }
+
+  /**
+   * Load and parse diagnostics from a directory using the injected provider
+   */
+  async loadDiagnostics(directory: string): Promise<PipelineGraph> {
+    if (!this.diagnosticsProvider) {
+      throw new Error('No DiagnosticsProvider configured in DiagnosticsService')
+    }
+    const raw = await this.diagnosticsProvider.getDiagnostics(directory)
+    return parseDiagnostics(raw)
+  }
+
   /**
    * Analyzes diagnostics text and returns a formatted pipeline
    * @param diagnosticsText Raw diagnostics output from `aspire do diagnostics`

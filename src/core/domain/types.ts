@@ -28,3 +28,14 @@ export interface PipelineGraph {
   steps: PipelineStep[]
   edges: PipelineEdge[]
 }
+
+export type ParsedEventType = 'line' | 'start' | 'success' | 'failure'
+
+export interface ParsedEvent {
+  timestamp: number
+  stepName?: string
+  type: ParsedEventType
+  text: string
+  /** Original line, retained so consumers can render output without reconstruction. */
+  source?: string
+}

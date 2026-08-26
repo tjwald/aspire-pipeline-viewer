@@ -1,4 +1,4 @@
-import type { PipelineGraph, PipelineEdge, PipelineStep } from './types/pipeline'
+import type { PipelineGraph, PipelineEdge, PipelineStep } from './types'
 
 /**
  * Filter a pipeline graph to only include the steps required to reach a target step.
@@ -38,7 +38,7 @@ export function filterGraphForTarget(graph: PipelineGraph, targetStepId: string)
     }))
 
   const filteredEdges = graph.edges.filter(
-    (edge: PipelineEdge) => includedSteps.has(edge.source) && includedSteps.has(edge.target),
+    (edge: PipelineEdge) => includedSteps.has(edge.source) && includedSteps.has(edge.target)
   )
 
   return {

@@ -33,6 +33,18 @@ describe('LogViewer', () => {
     expect(screen.queryByText('Deploying...')).not.toBeInTheDocument()
   })
 
+  it('filters parsed logs by normalized step ID', () => {
+    const logs: LogLine[] = [
+      { timestamp: 1704297600000, text: 'Linting...', stepName: 'lint-frontend', stepId: 'step-1' },
+      { timestamp: 1704297601000, text: 'Other step', stepName: 'other', stepId: 'step-2' },
+    ]
+
+    render(<LogViewer logs={logs} selectedStepId="step-1" />)
+
+    expect(screen.getByText('Linting...')).toBeInTheDocument()
+    expect(screen.queryByText('Other step')).not.toBeInTheDocument()
+  })
+
   it('shows correct log count in header', () => {
     render(<LogViewer logs={mockLogs} />)
     expect(screen.getByText('5 lines')).toBeInTheDocument()

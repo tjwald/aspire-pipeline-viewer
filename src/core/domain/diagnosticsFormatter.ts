@@ -1,4 +1,4 @@
-import type { PipelineGraph } from './types/pipeline'
+import type { PipelineGraph } from './types'
 import { filterGraphForTarget } from './graphUtils'
 
 export type OutputFormat = 'json' | 'text'

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { validateDirectory, validateStepName, validateFilePath } from '../../src/core/security'
+import { validateStepName } from '@aspire-pipeline-viewer/core'
+import { validateDirectory, validateFilePath } from '@aspire-pipeline-viewer/platform-node'
 import fs from 'fs'
 import path from 'path'
 import os from 'os'

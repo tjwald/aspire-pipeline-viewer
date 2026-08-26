@@ -18,7 +18,8 @@
     "test": "pnpm test:unit && pnpm test:e2e"
   },
   "dependencies": {
-    "@aspire-pipeline-viewer/core": "workspace:*"
+    "@aspire-pipeline-viewer/core": "workspace:*",
+    "@aspire-pipeline-viewer/platform-node": "workspace:*"
   },
   "devDependencies": {
     "electron": "^39.2.7",

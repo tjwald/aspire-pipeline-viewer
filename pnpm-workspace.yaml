@@ -1,5 +1,7 @@
 packages:
   - src/core
+  - src/platforms/*
+  - src/ui
   - src/frontends/*
 
 onlyBuiltDependencies:
