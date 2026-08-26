@@ -2,16 +2,16 @@ import type { ParsedEvent } from './types'
 
 const stripAnsi = (input: string) =>
   input.replace(
-    // ANSI escape sequences
+    // ANSI escape sequences used by older Aspire output.
     // eslint-disable-next-line no-control-regex
     /\u001B\[[0-9;]*[A-Za-z]|\u001B\][0-9];.*?(\u0007|\\)/g,
     ''
   )
 
 /**
- * Parse a single log line from aspire output and return zero-or-more ParsedEvent entries.
+ * Parse a single non-interactive Aspire log line.
  * The parser is pure and takes an optional referenceDateMs so tests can assert deterministic timestamps.
- * This version does not use regex and is robust to spinner lines and malformed input.
+ * Unstructured lines are retained as-is for display.
  */
 export function parseLogLine(
   raw: string,
@@ -19,60 +19,46 @@ export function parseLogLine(
 ): ParsedEvent | null {
   if (!raw) return null
 
-  const clean = stripAnsi(raw).trim()
-  if (!clean) return null
+  const clean = stripAnsi(raw).replace(/\r$/, '')
+  if (!clean.trim()) return null
 
-  const timePart = clean.slice(0, 8)
-  const isTime =
-    timePart.length === 8 &&
-    timePart[2] === ':' &&
-    timePart[5] === ':' &&
-    /^\d{2}:\d{2}:\d{2}$/.test(timePart)
+  const structured = clean.match(
+    /^(\d{2}):(\d{2}):(\d{2})\s+\(([^)]+)\)\s+(→|✓|✗|i)\s?(.*)$/
+  )
 
-  if (isTime) {
-    const [hh, mm, ss] = timePart.split(':').map(Number)
-    const refMs = referenceDateMs ?? Date.now()
-    const ref = new Date(refMs)
-
+  if (structured) {
+    const [, hours, minutes, seconds, stepName, symbol, text] = structured
+    const message = text.trim()
+    const ref = new Date(referenceDateMs ?? Date.now())
     const timestamp = Date.UTC(
       ref.getUTCFullYear(),
       ref.getUTCMonth(),
       ref.getUTCDate(),
-      hh,
-      mm,
-      ss
+      Number(hours),
+      Number(minutes),
+      Number(seconds)
     )
-
-    const openParen = clean.indexOf('(')
-    const closeParen = clean.indexOf(')', openParen + 1)
-
-    if (openParen !== -1 && closeParen !== -1) {
-      const stepName = clean.slice(openParen + 1, closeParen).trim()
-      const after = clean.slice(closeParen + 1).trim()
-
-      const symbol = after[0]
-      const type =
-        symbol === '→'
-          ? 'start'
-          : symbol === 'i'
-          ? 'line'
-          : symbol === '✓'
-          ? 'success'
-          : symbol === '✗'
+    const type = symbol === '→'
+      ? 'start'
+      : symbol === '✓'
+        ? 'success'
+        : symbol === '✗' && !message.startsWith('[ERR]')
           ? 'failure'
-          : null
+          : 'line'
 
-      if (type) {
-        const text = after.slice(1).trim()
-        return { timestamp, stepName, type, text }
-      }
+    return {
+      timestamp,
+      stepName,
+      type,
+      text: message,
+      source: raw,
     }
   }
 
-  // Fallback: unstructured line
   return {
     timestamp: referenceDateMs ?? Date.now(),
     type: 'line',
-    text: clean,
+    text: raw,
+    source: raw,
   }
 }

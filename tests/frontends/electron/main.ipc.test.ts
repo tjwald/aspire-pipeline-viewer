@@ -95,18 +95,17 @@ describe('main IPC handlers and event forwarding', () => {
     const { setupRunIpcHandlers } = setupModule
     setupRunIpcHandlers(fakeIpc, svc, () => win)
 
-    // emit event from svc
-    svc.emit('event', { runId: 'run-1', event: { type: 'progress', text: '50%' } })
-    // small tick
+    // emit output event from svc (as the core RunEngine does via RunService)
+    svc.emit('event', { runId: 'run-1', event: { type: 'line', text: '50%' } })
     await new Promise((r) => setTimeout(r, 0))
     expect((win.webContents.send as any).mock.calls.length).toBeGreaterThanOrEqual(1)
     expect((win.webContents.send as any).mock.calls[0][0]).toBe('run-output')
 
-    // emit terminal event
-    svc.emit('event', { runId: 'run-2', event: { type: 'success', text: 'done' } })
+    // status changes are now computed by the core RunEngine and forwarded verbatim
+    svc.emit('run-status-change', { runId: 'run-2', status: 'success', nodeStatuses: { 'step-1': 'success' } })
     await new Promise((r) => setTimeout(r, 0))
     const calls = (win.webContents.send as any).mock.calls
-    // last call should be run-status-change
     expect(calls[calls.length - 1][0]).toBe('run-status-change')
+    expect(calls[calls.length - 1][1]).toEqual({ runId: 'run-2', status: 'success', nodeStatuses: { 'step-1': 'success' } })
   })
 })

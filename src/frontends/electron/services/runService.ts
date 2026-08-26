@@ -2,7 +2,7 @@ import { spawn, ChildProcess } from 'child_process';
 import { EventEmitter } from 'events';
 import fs from 'fs';
 import path from 'path';
-import { parseLogLine, ParsedEvent, type IRunService, type PipelineGraph } from '@aspire-pipeline-viewer/core';
+import { RunEngine, type IRunService, type PipelineGraph, type RunDetails } from '@aspire-pipeline-viewer/core';
 
 function getUserDataPath(): string {
   try {
@@ -24,7 +24,12 @@ interface RunMeta {
   status: 'running' | 'success' | 'failed';
 }
 
+/**
+ * Electron adapter: spawns the Aspire CLI and persists raw output to disk. All parsing,
+ * step-name resolution, and per-step status derivation is delegated to the core RunEngine.
+ */
 export class RunService extends EventEmitter implements IRunService {
+  private engine = new RunEngine();
   private runs = new Map<
     string,
     { proc?: ChildProcess; meta: RunMeta; writeStream?: fs.WriteStream }
@@ -32,10 +37,6 @@ export class RunService extends EventEmitter implements IRunService {
 
   private baseDir: string;
   private workspaceDir?: string;
-
-  // Buffers for partial lines
-  private stdoutBuffer = '';
-  private stderrBuffer = '';
 
   constructor(userDataDir?: string) {
     super();
@@ -46,6 +47,15 @@ export class RunService extends EventEmitter implements IRunService {
     } catch {
       // ignore
     }
+
+    this.engine.onOutput((payload) => this.emit('event', payload));
+    this.engine.onStatusChange((payload) =>
+      this.emit('run-status-change', {
+        runId: payload.runId,
+        status: payload.status,
+        nodeStatuses: payload.nodeStatuses,
+      })
+    );
   }
 
   setWorkspaceDirectory(dir: string): void {
@@ -84,6 +94,12 @@ export class RunService extends EventEmitter implements IRunService {
       'utf-8'
     );
 
+    this.engine.startRun(
+      runId,
+      graph || { id: runId, steps: [{ id: stepName, name: stepName }], edges: [] },
+      stepName
+    );
+
     const proc = spawn('aspire', ['do', stepName, '--non-interactive'], {
       // Use 'pipe' for all 3 streams to avoid 'The handle is invalid' with .NET process
       stdio: 'pipe',
@@ -93,60 +109,27 @@ export class RunService extends EventEmitter implements IRunService {
     });
 
     const ws = fs.createWriteStream(logPath, { flags: 'a' });
+    const writeStreamReady = new Promise<void>((resolve, reject) => {
+      ws.once('open', () => resolve());
+      ws.once('error', reject);
+    });
 
     this.runs.set(runId, { proc, meta, writeStream: ws });
 
-    // --- STDOUT ---
     proc.stdout?.on('data', (chunk: Buffer | string) => {
       const text = chunk.toString();
       ws.write(text);
-
-      this.stdoutBuffer += text;
-
-      let idx;
-      while ((idx = this.stdoutBuffer.indexOf('\n')) >= 0) {
-        const line = this.stdoutBuffer.slice(0, idx);
-        this.stdoutBuffer = this.stdoutBuffer.slice(idx + 1);
-
-        const ev = parseLogLine(line);
-        if (ev) this.emit('event', { runId, event: ev });
-      }
+      this.engine.ingest(runId, 'stdout', text);
     });
 
-    // --- STDERR ---
     proc.stderr?.on('data', (chunk: Buffer | string) => {
       const text = chunk.toString();
       ws.write(text);
-
-      this.stderrBuffer += text;
-
-      let idx;
-      while ((idx = this.stderrBuffer.indexOf('\n')) >= 0) {
-        const line = this.stderrBuffer.slice(0, idx);
-        this.stderrBuffer = this.stderrBuffer.slice(idx + 1);
-
-        const ev = parseLogLine(line);
-        if (ev) this.emit('event', { runId, event: ev });
-      }
+      this.engine.ingest(runId, 'stderr', text);
     });
 
-    // Flush remaining partial lines on exit
-    const flushBuffers = () => {
-      if (this.stdoutBuffer.length > 0) {
-        const ev = parseLogLine(this.stdoutBuffer);
-        if (ev) this.emit('event', { runId, event: ev });
-        this.stdoutBuffer = '';
-      }
-
-      if (this.stderrBuffer.length > 0) {
-        const ev = parseLogLine(this.stderrBuffer);
-        if (ev) this.emit('event', { runId, event: ev });
-        this.stderrBuffer = '';
-      }
-    };
-
     proc.on('exit', (code) => {
-      flushBuffers();
+      this.engine.flush(runId);
 
       try {
         ws.end();
@@ -161,22 +144,16 @@ export class RunService extends EventEmitter implements IRunService {
         /* ignore */
       }
 
-      const ev: ParsedEvent = {
+      this.engine.recordSyntheticEvent(runId, {
         timestamp: Date.now(),
         type: code === 0 ? 'success' : 'failure',
         text: finalText,
-      };
-
-      this.emit('event', { runId, event: ev });
-      
-      const finalStatus = code === 0 ? 'success' : 'failed';
-      
-      // Explicitly emit a status change so the UI knows the overall run is done
-      this.emit('run-status-change', {
-        runId,
-        status: finalStatus
       });
-      
+
+      this.engine.finishRun(runId, code ?? 1);
+
+      const finalStatus = code === 0 ? 'success' : 'failed';
+
       // Update meta to indicate completion on disk
       const metaPath = path.join(this.baseDir, `${runId}.meta.json`);
       try {
@@ -186,6 +163,7 @@ export class RunService extends EventEmitter implements IRunService {
       } catch { /* ignore */ }
     });
 
+    await writeStreamReady;
     return runId;
   }
 
@@ -206,6 +184,7 @@ export class RunService extends EventEmitter implements IRunService {
     }
 
     this.runs.delete(runId);
+    this.engine.removeRun(runId);
   }
 
   async renameRun(runId: string, name: string): Promise<void> {
@@ -251,7 +230,7 @@ export class RunService extends EventEmitter implements IRunService {
     }
   }
 
-  async getRunDetails(runId: string): Promise<{ meta: RunMeta; graph?: PipelineGraph; logs: ParsedEvent[] } | null> {
+  async getRunDetails(runId: string): Promise<RunDetails | null> {
     try {
       const metaPath = path.join(this.baseDir, `${runId}.meta.json`);
       const metaRaw = await fs.promises.readFile(metaPath, 'utf-8');
@@ -265,20 +244,29 @@ export class RunService extends EventEmitter implements IRunService {
         // ignore missing graph
       }
 
-      const logs: ParsedEvent[] = [];
+      // Active run: the engine already holds the authoritative parsed logs/statuses.
+      const activeState = this.engine.getRunState(runId);
+      if (activeState) {
+        return { meta, graph, logs: activeState.logs, nodeStatuses: activeState.nodeStatuses };
+      }
+
+      // Historical run from a previous app session: replay the persisted raw log through
+      // a scratch engine so reconstruction uses the exact same parsing/status logic as a live run.
+      const replayEngine = new RunEngine();
+      const replayGraph: PipelineGraph =
+        graph || { id: runId, steps: [{ id: meta.targetStepId || runId, name: meta.targetStepId || runId }], edges: [] };
+      replayEngine.startRun(runId, replayGraph, meta.targetStepId || runId);
+
       try {
         const logContent = await fs.promises.readFile(meta.logPath, 'utf-8');
-        const lines = logContent.split('\n');
-        for (const line of lines) {
-          if (!line) continue;
-          const ev = parseLogLine(line + '\n');
-          if (ev) logs.push(ev);
-        }
+        replayEngine.ingest(runId, 'stdout', logContent);
+        replayEngine.flush(runId);
       } catch {
         // ignore missing logs
       }
 
-      return { meta, graph, logs };
+      const replayState = replayEngine.getRunState(runId);
+      return { meta, graph, logs: replayState?.logs ?? [], nodeStatuses: replayState?.nodeStatuses };
     } catch {
       return null;
     }

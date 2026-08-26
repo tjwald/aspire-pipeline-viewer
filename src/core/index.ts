@@ -15,6 +15,7 @@ export { DiagnosticsFormatter } from './domain/diagnosticsFormatter'
 export type { OutputFormat } from './domain/diagnosticsFormatter'
 export { parseLogLine } from './domain/logParser'
 export { validateStepName } from './domain/security'
+export { normalizeStepToken, buildStepAliasMap, resolveStepId, nextStepStatus } from './domain/stepResolution'
 
 // Port interfaces
 export type {
@@ -33,5 +34,7 @@ export type {
 // Application services & logging
 export { DiagnosticsService } from './application/diagnosticsService'
 export { ConsoleLogger } from './application/logger'
+export { RunEngine } from './application/runEngine'
+export type { StepStatus, RunEngineEvent, RunStatusChange } from './application/runEngine'
 
 

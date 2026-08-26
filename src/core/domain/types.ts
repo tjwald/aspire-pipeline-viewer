@@ -36,4 +36,6 @@ export interface ParsedEvent {
   stepName?: string
   type: ParsedEventType
   text: string
+  /** Original line, retained so consumers can render output without reconstruction. */
+  source?: string
 }

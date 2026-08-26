@@ -143,16 +143,18 @@ describe('RunView', () => {
       expect(badgeIcons.filter(icon => icon === '⏳').length).toBe(2)
     })
     
-    it('restores node statuses correctly from disk logs', async () => {
-      // Mock disk returning some historical logs
+    it('restores node statuses from the nodeStatuses computed by the core RunEngine', async () => {
+      // The real RunService's getRunDetails replays persisted logs through the core RunEngine
+      // and returns the already-computed nodeStatuses; the renderer must trust them as-is.
       mockElectronAPI.getRunDetails.mockResolvedValueOnce({
-        meta: { startedAt: Date.now(), name: 'Test Run', targetStepId: 'step-2' }, 
+        meta: { startedAt: Date.now(), name: 'Test Run', targetStepId: 'step-2' },
         logs: [
-          { timestamp: 1, type: 'start', stepName: 'Build', text: 'starting' },
-          { timestamp: 2, type: 'success', stepName: 'Build', text: 'done' },
-          { timestamp: 3, type: 'start', stepName: 'Test', text: 'starting test' }
+          { timestamp: 1, type: 'start', stepName: 'Build', stepId: 'step-1', text: 'starting' },
+          { timestamp: 2, type: 'success', stepName: 'Build', stepId: 'step-1', text: 'done' },
+          { timestamp: 3, type: 'start', stepName: 'Test', stepId: 'step-2', text: 'starting test' },
         ],
-        graph: null
+        nodeStatuses: { 'step-1': ExecutionStatus.Success, 'step-2': ExecutionStatus.Running },
+        graph: null,
       })
 
       render(
@@ -251,6 +253,142 @@ describe('RunView', () => {
 
       await waitFor(() => {
         expect(screen.getByText('Building project...')).toBeInTheDocument()
+      })
+    })
+
+    it('preserves live output and status received while the initial snapshot is loading', async () => {
+      let outputCallback: (data: { runId: string; event: ParsedEvent & { stepId?: string } }) => void
+      let statusCallback: (data: {
+        runId: string
+        status: 'running' | 'success' | 'failed'
+        nodeStatuses: NodeStatusesMap
+      }) => void
+      let resolveDetails: (details: unknown) => void
+
+      mockElectronAPI.onRunOutput.mockImplementation((cb) => {
+        outputCallback = cb
+        return vi.fn()
+      })
+      mockElectronAPI.onRunStatusChange.mockImplementation((cb) => {
+        statusCallback = cb
+        return vi.fn()
+      })
+      mockElectronAPI.getRunDetails.mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveDetails = resolve
+        })
+      )
+
+      render(<RunView runId="test-run-1" graph={mockGraph} targetStepId="step-2" />)
+
+      await waitFor(() => {
+        expect(mockElectronAPI.onRunOutput).toHaveBeenCalled()
+        expect(mockElectronAPI.onRunStatusChange).toHaveBeenCalled()
+      })
+
+      act(() => {
+        outputCallback!({
+          runId: 'test-run-1',
+          event: {
+            timestamp: 2,
+            text: 'live build output',
+            stepName: 'Build',
+            stepId: 'step-1',
+            type: 'start',
+          },
+        })
+        statusCallback!({
+          runId: 'test-run-1',
+          status: 'running',
+          nodeStatuses: { 'step-1': ExecutionStatus.Running },
+        })
+      })
+
+      await act(async () => {
+        resolveDetails!({
+          meta: { startedAt: 1, name: 'Test Run', targetStepId: 'step-2', status: 'running' },
+          logs: [],
+          nodeStatuses: {
+            'step-1': ExecutionStatus.Pending,
+            'step-2': ExecutionStatus.Pending,
+          },
+          graph: null,
+        })
+      })
+
+      await waitFor(() => {
+        expect(screen.getByText('live build output')).toBeInTheDocument()
+        expect(screen.getByTestId('badge-running')).toBeInTheDocument()
+      })
+    })
+
+    it('updates the matching step badge from status-change events (status is computed by the core RunEngine)', async () => {
+      let outputCallback: (data: { runId: string; event: ParsedEvent }) => void
+      let statusCallback: (data: { runId: string; status: 'running' | 'success' | 'failed'; nodeStatuses: NodeStatusesMap }) => void
+
+      mockElectronAPI.onRunOutput.mockImplementation((cb) => {
+        outputCallback = cb
+        return vi.fn()
+      })
+      mockElectronAPI.onRunStatusChange.mockImplementation((cb) => {
+        statusCallback = cb
+        return vi.fn()
+      })
+
+      render(
+        <RunView
+          runId="test-run-1"
+          graph={mockGraph}
+          targetStepId="step-2"
+        />
+      )
+
+      await waitFor(() => {
+        expect(screen.getByTestId('run-graph-wrapper')).toBeInTheDocument()
+      })
+
+      // Output events only carry log text; the RunEngine (not the renderer) derives status.
+      act(() => {
+        outputCallback!({
+          runId: 'test-run-1',
+          event: {
+            timestamp: Date.now(),
+            text: 'Starting step-1...',
+            stepName: 'step-1',
+            type: 'start',
+          },
+        })
+        statusCallback!({
+          runId: 'test-run-1',
+          status: 'running',
+          nodeStatuses: { 'step-1': ExecutionStatus.Running },
+        })
+      })
+
+      await waitFor(() => {
+        expect(screen.getByTestId('badge-running')).toBeInTheDocument()
+      })
+
+      act(() => {
+        outputCallback!({
+          runId: 'test-run-1',
+          event: {
+            timestamp: Date.now(),
+            text: 'step-1 completed successfully',
+            stepName: 'step-1',
+            type: 'success',
+          },
+        })
+        statusCallback!({
+          runId: 'test-run-1',
+          status: 'running',
+          nodeStatuses: { 'step-1': ExecutionStatus.Success },
+        })
+      })
+
+      await waitFor(() => {
+        expect(screen.getByTestId('badge-success')).toBeInTheDocument()
+        expect(screen.queryByTestId('badge-running')).not.toBeInTheDocument()
       })
     })
 

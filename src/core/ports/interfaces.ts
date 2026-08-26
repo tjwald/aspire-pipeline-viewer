@@ -38,6 +38,7 @@ export interface RunDetails {
   meta: RunMeta
   graph?: PipelineGraph | null
   logs: ParsedEvent[]
+  nodeStatuses?: Record<string, 'pending' | 'running' | 'success' | 'failed'>
 }
 
 export interface IRunService extends IEventStream {

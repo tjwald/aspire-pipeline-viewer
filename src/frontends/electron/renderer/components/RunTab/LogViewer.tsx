@@ -4,6 +4,8 @@ import type { ParsedEventType } from '@aspire-pipeline-viewer/core'
 export interface LogLine {
   timestamp: number
   text: string
+  source?: string
+  stepId?: string
   stepName?: string
   type?: ParsedEventType
 }
@@ -116,7 +118,7 @@ export function LogViewer({ logs, selectedStepId, autoScroll = true }: LogViewer
   // Filter logs based on selected step
   const filteredLogs = useMemo(() => {
     if (!selectedStepId) return logs
-    return logs.filter((log) => (!log.stepName && !selectedStepId) || log.stepName === selectedStepId)
+    return logs.filter((log) => log.stepId === selectedStepId || (!log.stepId && log.stepName === selectedStepId))
   }, [logs, selectedStepId])
 
   // Auto-scroll to bottom when new logs arrive
@@ -171,8 +173,14 @@ export function LogViewer({ logs, selectedStepId, autoScroll = true }: LogViewer
         ) : (
           filteredLogs.map((log, idx) => (
             <div key={`${log.timestamp}-${idx}`} className="log-line" data-step={log.stepName}>
-              <span className="log-timestamp">{formatTime(log.timestamp)}</span>
-              <span className="log-text">{parseAnsi(log.text)}</span>
+              {log.source ? (
+                <span className="log-text">{parseAnsi(log.source)}</span>
+              ) : (
+                <>
+                  <span className="log-timestamp">{formatTime(log.timestamp)}</span>
+                  <span className="log-text">{parseAnsi(log.text)}</span>
+                </>
+              )}
             </div>
           ))
         )}
