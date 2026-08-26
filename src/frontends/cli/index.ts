@@ -222,7 +222,7 @@ async function main() {
       const { spawn } = await import('child_process');
       const result = await new Promise<string>((resolve, reject) => {
         const aspireCmd = process.platform === 'win32' ? 'aspire.exe' : 'aspire';
-        const proc = spawn(aspireCmd, ['do', 'diagnostics'], {
+        const proc = spawn(aspireCmd, ['do', 'diagnostics', '--non-interactive'], {
           cwd: resolvedDir,
           stdio: ['pipe', 'pipe', 'pipe'],
         });
